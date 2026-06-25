@@ -236,7 +236,7 @@
             <div id="sidebar-partners-area" class="bg-white border border-[#eaddcd] rounded-xl p-3 shadow-sm space-y-3">
                 <h3 class="text-[10px] font-bold uppercase tracking-wider text-slateCharcoal/60 flex items-center justify-between">
                     <span>Connected Peer Profiles</span>
-                    <span class="w-2 h-2 rounded-full bg-sage"></span>
+                    <span class="w-2 h-2 rounded-full bg-sage" id="peer-status-dot"></span>
                 </h3>
                 <div id="partner-card-list" class="space-y-3"></div>
             </div>
@@ -358,7 +358,7 @@
                     <div class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm space-y-4">
                         <div class="flex justify-between items-center border-b border-gray-100 pb-2">
                             <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Account Connections</h3>
-                            <span class="text-[10px] bg-amber-50 text-honeyAmber px-2 py-0.5 rounded-full font-bold">Unlinked Profile Tunnel</span>
+                            <span class="text-[10px] bg-amber-50 text-honeyAmber px-2 py-0.5 rounded-full font-bold" id="txt-tunnel-status">Unlinked Profile Tunnel</span>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                             <div class="bg-orange-50/40 border border-orange-100 p-4 rounded-xl flex items-center justify-between">
@@ -751,13 +751,12 @@
 
             openCustomModal("PERMANENT ACCOUNT PURGE", "This is non-reversible. This deletes your profile, linked classes, and all logs from our live cloud and local caches. Type 'WIPE' below to confirm:", true).then(async (res) => {
                 if (res.confirmed && res.value === "WIPE") {
-                    const currentUser = globalDatabase.users[userId];
-                    if (!currentUser) return;
+                    const currentUser = globalDatabase.users[userId] || { name: "User" };
 
                     // Locate any student profiles linked to this user
-                    const associatedStudents = Object.keys(globalDatabase.students).filter(key => {
+                    const associatedStudents = Object.keys(globalDatabase.students || {}).filter(key => {
                         const s = globalDatabase.students[key];
-                        return s.teacherName === currentUser.name || s.studentName === `${currentUser.name}'s Class` || s.studentName === currentUser.name;
+                        return s && (s.teacherName === currentUser.name || s.studentName === `${currentUser.name}'s Class` || s.studentName === currentUser.name);
                     });
 
                     try {
@@ -1182,21 +1181,20 @@
             launchToast("Account node passcode written to clipboard.", "success");
         }
 
+        // RE-ENGINEERED PEERING SYSTEM: LOCAL-FIRST PARALLEL RESOLUTION PATH
         window.executeDirectPairing = function() {
             const input = document.getElementById('input-link-peer-key');
             const targetKey = input.value.trim();
             const currentUser = globalDatabase.users[globalDatabase.activeUserId];
 
             if(!targetKey) return launchToast("Provide a valid registration key to connect profiles.", "warning");
+            if(!currentUser) return launchToast("Your profile state is initializing. Try refreshing.", "error");
             
-            // RESOLVE OVERSEAS LOOKUP INSTANTLY (Using direct single doc index mapping path)
-            const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', targetKey);
-            getDoc(targetRef).then((targetSnap) => {
-                if (!targetSnap.exists()) {
-                    return launchToast("Cryptographic identifier search failed across registered keys.", "error");
-                }
-                const matchedAgent = targetSnap.data();
+            if(targetKey === currentUser.id) {
+                return launchToast("Loopback pairing rejected. You cannot pair with your own key.", "warning");
+            }
 
+            const completeBindingSequence = (matchedAgent) => {
                 if(matchedAgent.role === currentUser.role) {
                     return launchToast("Binding error: Multi-node tracking pairing must be asymmetric (Teacher to Guardian).", "error");
                 }
@@ -1210,9 +1208,26 @@
 
                 performLinkExecutionBetweenAgents(tId, gId);
                 input.value = '';
+            };
+
+            // Direct Memory Peering Route
+            if (globalDatabase.users && globalDatabase.users[targetKey]) {
+                completeBindingSequence(globalDatabase.users[targetKey]);
+                return;
+            }
+
+            // Dual Cloud-Fallback Query Route (Bypasses active indexing limitations)
+            const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', targetKey);
+            getDoc(targetRef).then((targetSnap) => {
+                if (!targetSnap.exists()) {
+                    return launchToast("Cryptographic identifier search failed across registered keys.", "error");
+                }
+                const matchedAgent = targetSnap.data();
+                globalDatabase.users[targetKey] = matchedAgent; // Seed snapshot into local registry
+                completeBindingSequence(matchedAgent);
             }).catch(err => {
                 console.error("Peer lookup error: ", err);
-                launchToast("Connection timeout. Check your network rules.", "error");
+                launchToast("Connection timeout. Confirm Firestore Rules allow public reading.", "error");
             });
         }
 
@@ -1423,7 +1438,7 @@
                     color: 'text-indigo-400',
                     badge: 'Partial'
                 });
-                launchToast(`Partial duration block captured and cached.`, "info");
+                launchToast("Partial duration block captured and cached.", "info");
             }
 
             save();
@@ -1714,7 +1729,6 @@
                 if(btnGuardian) { btnGuardian.classList.add('text-slateCharcoal'); btnGuardian.classList.remove('text-gray-500'); }
                 if(btnTeacher) { btnTeacher.classList.remove('text-slateCharcoal'); btnTeacher.classList.add('text-gray-500'); }
                 if(tControls) tControls.classList.add('hidden');
-                // FIXED CRITICAL DOM REMOVAL TYPO HERE: Previously gControls.remove('hidden') which deleted the entire element from the DOM tree!
                 if(gControls) gControls.classList.remove('hidden'); 
             }
         }
