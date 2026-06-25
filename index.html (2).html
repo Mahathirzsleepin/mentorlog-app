@@ -81,7 +81,7 @@
     <!-- IN-APP TOAST NOTIFICATION PORTAL -->
     <div id="toast-wrapper-portal" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none max-w-sm w-full"></div>
 
-    <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL (FOR ALL IMPUTS, PROMPTS & CONFIRMATIONS) -->
+    <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL (FOR ALL INPUTS, PROMPTS & CONFIRMATIONS) -->
     <div id="custom-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden">
         <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-md p-6 transform scale-95 transition-all duration-300 space-y-4">
             <h3 id="modal-title" class="text-xs font-bold text-slateCharcoal uppercase tracking-wider">Attention Required</h3>
@@ -293,8 +293,8 @@
                 <button id="clear-search-btn" onclick="clearDateSearch()" class="hidden w-full text-center text-[10px] text-terracotta hover:underline font-medium">Clear Filter</button>
             </div>
 
-            <!-- METADATA FOOTER FRAME -->
-            <div class="absolute bottom-4 left-4 right-4 bg-white/70 backdrop-blur-md border border-[#eaddcd] p-3 rounded-xl flex items-center justify-between shadow-sm">
+            <!-- METADATA FOOTER FRAME (WITH DIRECT ONE-TAP DELETE ACTION ADDED) -->
+            <div class="absolute bottom-4 left-4 right-4 bg-white/75 backdrop-blur-md border border-[#eaddcd] p-3 rounded-xl flex items-center justify-between shadow-sm">
                 <div class="truncate mr-2 flex items-center gap-2">
                     <img id="avatar-footer-preview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" class="w-7 h-7 rounded-full object-cover border border-[#eaddcd]">
                     <div class="truncate">
@@ -302,9 +302,14 @@
                         <div id="user-profile-tag-role" class="text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">—</div>
                     </div>
                 </div>
-                <button onclick="terminateAuthenticatedSession()" class="text-[10px] font-bold text-terracotta hover:text-red-700 underline shrink-0">
-                    Sign Out
-                </button>
+                <div class="flex flex-col items-end gap-1.5 shrink-0 select-none">
+                    <button onclick="terminateAuthenticatedSession()" class="text-[10px] font-bold text-terracotta hover:text-red-700 underline shrink-0">
+                        Sign Out
+                    </button>
+                    <button onclick="triggerAccountWipe()" class="text-[9px] font-bold text-red-500 hover:text-red-700 hover:underline shrink-0 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> WIPE
+                    </button>
+                </div>
             </div>
         </aside>
 
@@ -998,13 +1003,13 @@
         window.setAuthRole = function(role) {
             currentAuthRole = role;
             const btnTeacher = document.getElementById('auth-role-teacher');
-            const btnGuardian = document.getElementById('auth-role-guardian');
+            const btnPageGuardian = document.getElementById('auth-role-guardian');
 
             if (role === 'teacher') {
                 btnTeacher.className = "py-2.5 text-xs font-bold rounded-xl border-2 border-slateCharcoal bg-slateCharcoal text-white transition-all";
-                btnGuardian.className = "py-2.5 text-xs font-medium rounded-xl border border-[#eaddcd] text-gray-600 bg-[#fbf9f6] hover:bg-gray-50 transition-all";
+                btnPageGuardian.className = "py-2.5 text-xs font-medium rounded-xl border border-[#eaddcd] text-gray-600 bg-[#fbf9f6] hover:bg-gray-50 transition-all";
             } else {
-                btnGuardian.className = "py-2.5 text-xs font-bold rounded-xl border-2 border-slateCharcoal bg-slateCharcoal text-white transition-all";
+                btnPageGuardian.className = "py-2.5 text-xs font-bold rounded-xl border-2 border-slateCharcoal bg-slateCharcoal text-white transition-all";
                 btnTeacher.className = "py-2.5 text-xs font-medium rounded-xl border border-[#eaddcd] text-gray-600 bg-[#fbf9f6] hover:bg-gray-50 transition-all";
             }
         }
@@ -1692,7 +1697,8 @@
                 if(btnGuardian) { btnGuardian.classList.add('text-slateCharcoal'); btnGuardian.classList.remove('text-gray-500'); }
                 if(btnTeacher) { btnTeacher.classList.remove('text-slateCharcoal'); btnTeacher.classList.add('text-gray-500'); }
                 if(tControls) tControls.classList.add('hidden');
-                if(gControls) gControls.remove('hidden');
+                // FIXED CRITICAL DOM REMOVAL TYPO HERE: Previously gControls.remove('hidden') which deleted the entire element from the DOM tree!
+                if(gControls) gControls.classList.remove('hidden'); 
             }
         }
 
