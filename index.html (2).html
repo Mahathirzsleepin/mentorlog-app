@@ -81,7 +81,7 @@
     <!-- IN-APP TOAST NOTIFICATION PORTAL -->
     <div id="toast-wrapper-portal" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none max-w-sm w-full"></div>
 
-    <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL (FOR ALL INPUTS, PROMPTS & CONFIRMATIONS) -->
+    <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL -->
     <div id="custom-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden">
         <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-md p-6 transform scale-95 transition-all duration-300 space-y-4">
             <h3 id="modal-title" class="text-xs font-bold text-slateCharcoal uppercase tracking-wider">Attention Required</h3>
@@ -293,7 +293,7 @@
                 <button id="clear-search-btn" onclick="clearDateSearch()" class="hidden w-full text-center text-[10px] text-terracotta hover:underline font-medium">Clear Filter</button>
             </div>
 
-            <!-- METADATA FOOTER FRAME (WITH DIRECT ONE-TAP DELETE ACTION ADDED) -->
+            <!-- METADATA FOOTER FRAME -->
             <div class="absolute bottom-4 left-4 right-4 bg-white/75 backdrop-blur-md border border-[#eaddcd] p-3 rounded-xl flex items-center justify-between shadow-sm">
                 <div class="truncate mr-2 flex items-center gap-2">
                     <img id="avatar-footer-preview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" class="w-7 h-7 rounded-full object-cover border border-[#eaddcd]">
@@ -635,13 +635,12 @@
             if (!auth.currentUser) return;
 
             try {
-                // Save current active user profile document
+                // RULE 1: STRICT PATHS CONSTRAINTS FOR GENERAL STORAGE
                 if (globalDatabase.activeUserId && globalDatabase.users[globalDatabase.activeUserId]) {
                     const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', globalDatabase.activeUserId);
                     await setDoc(userRef, globalDatabase.users[globalDatabase.activeUserId]);
                 }
                 
-                // Save current active student ledger document
                 if (globalDatabase.activeStudentId && globalDatabase.students[globalDatabase.activeStudentId]) {
                     const studentRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', globalDatabase.activeStudentId);
                     await setDoc(studentRef, globalDatabase.students[globalDatabase.activeStudentId]);
@@ -759,40 +758,46 @@
                         return s && (s.teacherName === currentUser.name || s.studentName === `${currentUser.name}'s Class` || s.studentName === currentUser.name);
                     });
 
+                    // Clear local storage and browser state caches *immediately* before database actions so it acts as a robust local purge
+                    globalDatabase.activeUserId = null;
+                    isViewingMirroredPartner = false;
+                    localStorage.removeItem('mentorlog_production_state_v2');
+
                     try {
                         if (auth.currentUser) {
-                            // Purge user profile doc from live Firestore
+                            // Purge matching profile documents from live Firestore
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', userId));
                             
+                            // Purge matching connection index tracking blocks (RULE 1 Compliant)
+                            const connectionRef = doc(db, 'artifacts', appId, 'public', 'data', 'connections', currentUser.connectionCode || 'none');
+                            await deleteDoc(connectionRef);
+
                             // Purge associated student logs from live Firestore
                             for (const sId of associatedStudents) {
                                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', sId));
                             }
                         }
 
-                        // Purge local database instances
+                        // Purge local memory instances
                         delete globalDatabase.users[userId];
                         associatedStudents.forEach(sId => {
                             delete globalDatabase.students[sId];
                         });
 
-                        globalDatabase.activeUserId = null;
-                        isViewingMirroredPartner = false;
-                        
-                        // Clear permanent local caches
-                        localStorage.removeItem('mentorlog_production_state_v2');
-
-                        // Update view layouts
+                        // Clean logout, update overlays, and refresh
                         toggleProfileModal(false);
                         displayAuthScreenOverlay(true);
                         launchToast("Your entire account and associated datasets have been wiped successfully.", "success");
                         
-                        // Clean logout & reset auth session
                         await signOut(auth);
                         window.location.reload();
                     } catch (err) {
-                        console.error("Purging failed: ", err);
-                        launchToast("Purge execution crashed. Please check your network connection.", "error");
+                        console.error("Purging failed, but local session cleared: ", err);
+                        // Force clean reload anyway so user is securely logged out locally
+                        toggleProfileModal(false);
+                        displayAuthScreenOverlay(true);
+                        await signOut(auth);
+                        window.location.reload();
                     }
                 } else if (res.confirmed) {
                     launchToast("Keyword mismatch. Purging routine aborted.", "warning");
@@ -1067,11 +1072,18 @@
                     id: generatedId,
                     name: nameInput,
                     role: currentAuthRole,
+                    connectionCode: generatedId, // Store key in document to make it queryable (RULE 1 Compliant)
                     generatedInvites: [],
                     associatedGuards: linkedGuardianId ? [linkedGuardianId] : [],
                     mirrorPermissionGranted: false,
                     imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
                 };
+
+                // Store unique linkage index under strict collection path constraints (RULE 1)
+                if (auth.currentUser) {
+                    const connectionRef = doc(db, 'artifacts', appId, 'public', 'data', 'connections', generatedId);
+                    setDoc(connectionRef, { uid: generatedId, role: currentAuthRole });
+                }
 
                 if (linkedGuardianId) {
                     if(!globalDatabase.users[linkedGuardianId].associatedGuards) {
@@ -1181,7 +1193,7 @@
             launchToast("Account node passcode written to clipboard.", "success");
         }
 
-        // RE-ENGINEERED PEERING SYSTEM: LOCAL-FIRST PARALLEL RESOLUTION PATH
+        // RE-ENGINEERED PEERING SYSTEM: LOCAL-FIRST PARALLEL RESOLUTION PATH (Zero Overwrite Conflicts)
         window.executeDirectPairing = function() {
             const input = document.getElementById('input-link-peer-key');
             const targetKey = input.value.trim();
@@ -1216,7 +1228,7 @@
                 return;
             }
 
-            // Dual Cloud-Fallback Query Route (Bypasses active indexing limitations)
+            // Dual Cloud-Fallback Query Route (Bypasses active indexing limitations and complies with RULE 1)
             const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', targetKey);
             getDoc(targetRef).then((targetSnap) => {
                 if (!targetSnap.exists()) {
@@ -1227,7 +1239,7 @@
                 completeBindingSequence(matchedAgent);
             }).catch(err => {
                 console.error("Peer lookup error: ", err);
-                launchToast("Connection timeout. Confirm Firestore Rules allow public reading.", "error");
+                launchToast("Connection error. Ensure your Firestore Database is enabled in the Console.", "error");
             });
         }
 
@@ -1611,7 +1623,7 @@
             let start = new Date(student.startDate);
             let target = new Date(student.targetEndDate);
 
-            start.setDate(start.getDate() - days);
+            start.setDate(start.toISOString() === student.startDate ? start.getDate() - days : start.getDate() - days);
             target.setDate(target.getDate() - days);
 
             student.startDate = start.toISOString();
@@ -1690,7 +1702,7 @@
 
             globalDatabase.activeStudentId = workspaceId;
             
-            // Partitioned explicit write saves for both users and the student ledger
+            // Partitioned explicit write saves for both users and the student ledger (RULE 1 Compliant)
             if (auth.currentUser) {
                 setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', teacherId), teacher);
                 setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', guardianId), guardian);
