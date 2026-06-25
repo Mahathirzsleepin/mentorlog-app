@@ -134,6 +134,16 @@
                     <input type="text" id="prof-hsc" placeholder="e.g., 5.00" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
                 </div>
             </div>
+
+            <!-- DANGER ZONE WIPE OUT INTERFACE -->
+            <div class="pt-3.5 border-t border-red-100 space-y-2">
+                <label class="block text-[10px] font-bold text-red-500 uppercase tracking-wider">Danger Zone</label>
+                <button onclick="triggerAccountWipe()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200/60 font-bold text-xs py-2.5 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Wipe My Account & Data (Permanent)
+                </button>
+            </div>
+
             <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button onclick="toggleProfileModal(false)" class="px-4 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-lg transition-all">Cancel</button>
                 <button onclick="saveUserProfile()" class="px-4 py-2 text-xs font-semibold bg-terracotta text-white hover:bg-terracottaHover rounded-lg transition-all">Save Changes</button>
@@ -570,7 +580,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // GLOBAL CONFIG INTEGRATED SAFELY
         const firebaseConfig = {
@@ -612,26 +622,27 @@
         // Custom Modal Resolution Variable Pool
         let activeModalResolver = null;
 
-        // Dynamic State Save to Firestore (Synchronized Database)
+        // Dynamic State Save to Firestore (Partitioned Database to prevent overwrites)
         async function save() {
-            const currentUser = auth.currentUser;
+            // Save locally as a robust fallback first
+            localStorage.setItem('mentorlog_production_state_v2', JSON.stringify(globalDatabase));
             
-            // Ensure structural collections exist prior to saving
-            globalDatabase.users = globalDatabase.users || {};
-            globalDatabase.students = globalDatabase.students || {};
-            
-            if (!currentUser) {
-                // Local fallback save if offline or auth initializing
-                localStorage.setItem('mentorlog_production_state_v2', JSON.stringify(globalDatabase));
-                return;
-            }
+            if (!auth.currentUser) return;
+
             try {
-                // RULE 1: STRICT PATHS CONSTRAINTS FOR GENERAL STORAGE
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'mentorlog_master');
-                await setDoc(docRef, globalDatabase);
+                // Save current active user profile document
+                if (globalDatabase.activeUserId && globalDatabase.users[globalDatabase.activeUserId]) {
+                    const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', globalDatabase.activeUserId);
+                    await setDoc(userRef, globalDatabase.users[globalDatabase.activeUserId]);
+                }
+                
+                // Save current active student ledger document
+                if (globalDatabase.activeStudentId && globalDatabase.students[globalDatabase.activeStudentId]) {
+                    const studentRef = doc(db, 'artifacts', appId, 'public', 'data', 'students', globalDatabase.activeStudentId);
+                    await setDoc(studentRef, globalDatabase.students[globalDatabase.activeStudentId]);
+                }
             } catch(e) {
-                console.error("Firestore persistence failed, writing to fallback memory: ", e);
-                localStorage.setItem('mentorlog_production_state_v2', JSON.stringify(globalDatabase));
+                console.error("Firestore partitioned persistence failed: ", e);
             }
         }
 
@@ -647,6 +658,138 @@
                 }
             }
             return globalDatabase.students[globalDatabase.activeStudentId];
+        }
+
+        function ensureSampleUsersExist() {
+            const sampleTeacherId = 'ML-T-SAMPLE';
+            const sampleGuardianId = 'ML-G-SAMPLE';
+
+            if (!globalDatabase.users[sampleTeacherId]) {
+                globalDatabase.users[sampleTeacherId] = {
+                    id: sampleTeacherId,
+                    name: "Alex Km. (Demo)",
+                    role: "teacher",
+                    associatedGuards: [sampleGuardianId],
+                    mirrorPermissionGranted: true,
+                    imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
+                };
+                if (auth.currentUser) {
+                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', sampleTeacherId), globalDatabase.users[sampleTeacherId]);
+                }
+            }
+
+            if (!globalDatabase.users[sampleGuardianId]) {
+                globalDatabase.users[sampleGuardianId] = {
+                    id: sampleGuardianId,
+                    name: "Guardian (Demo)",
+                    role: "guardian",
+                    associatedGuards: [sampleTeacherId],
+                    mirrorPermissionGranted: true,
+                    imgUrl: "https://images.unsplash.com/photo-1479936343636-73dad5a821d8?auto=format&fit=crop&q=80&w=100"
+                };
+                if (auth.currentUser) {
+                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', sampleGuardianId), globalDatabase.users[sampleGuardianId]);
+                }
+            }
+        }
+
+        function ensureDefaultStudentExists() {
+            const defaultStudentId = 'std_default';
+            if (!globalDatabase.students[defaultStudentId]) {
+                globalDatabase.students[defaultStudentId] = {
+                    id: defaultStudentId,
+                    studentName: "Demo Ward",
+                    teacherName: "Alex Km. (Demo)",
+                    institution: "Mirpur Cantonment Public",
+                    className: "Class 10 — Physics",
+                    monthlyPayment: "15,000 BDT",
+                    isActive: true,
+                    startDate: new Date().toISOString(),
+                    targetEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    classesLogged: 5,
+                    totalMinutes: 525,
+                    runningPartialMinutes: 0,
+                    isPaused: false,
+                    pauseStartDate: null,
+                    completedCyclesCount: 1,
+                    stickyDismissed: false,
+                    cyclePassedSinceDate: null,
+                    unpaidInvoices: [
+                        {
+                            id: "inv_initial_sample",
+                            title: "Month 1 Invoice",
+                            dismissed: false
+                        }
+                    ],
+                    logs: [
+                        {
+                            id: 1719234850,
+                            date: new Date().toISOString(),
+                            event: "Class Session Recorded",
+                            details: "Unit execution structure: 1h 45m (OFFLINE) [Class 5 of 12]",
+                            color: "text-sage",
+                            badge: "offline",
+                            classIndex: 5
+                        }
+                    ]
+                };
+                if (auth.currentUser) {
+                    setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', defaultStudentId), globalDatabase.students[defaultStudentId]);
+                }
+            }
+        }
+
+        // Danger Zone: 1-Tap Permanent Account and Data Wipeout Action
+        window.triggerAccountWipe = function() {
+            const userId = globalDatabase.activeUserId;
+            if (!userId) return;
+
+            openCustomModal("PERMANENT ACCOUNT PURGE", "This is non-reversible. This deletes your profile, linked classes, and all logs from our live cloud and local caches. Type 'WIPE' below to confirm:", true).then(async (res) => {
+                if (res.confirmed && res.value === "WIPE") {
+                    const currentUser = globalDatabase.users[userId];
+                    if (!currentUser) return;
+
+                    // Locate any student profiles linked to this user
+                    const associatedStudents = Object.keys(globalDatabase.students).filter(key => {
+                        const s = globalDatabase.students[key];
+                        return s.teacherName === currentUser.name || s.studentName === `${currentUser.name}'s Class` || s.studentName === currentUser.name;
+                    });
+
+                    try {
+                        if (auth.currentUser) {
+                            // Purge user profile doc from live Firestore
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', userId));
+                            
+                            // Purge associated student logs from live Firestore
+                            for (const sId of associatedStudents) {
+                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', sId));
+                            }
+                        }
+
+                        // Purge local database instances
+                        delete globalDatabase.users[userId];
+                        associatedStudents.forEach(sId => {
+                            delete globalDatabase.students[sId];
+                        });
+
+                        globalDatabase.activeUserId = null;
+                        isViewingMirroredPartner = false;
+                        
+                        // Clear permanent local caches
+                        localStorage.removeItem('mentorlog_production_state_v2');
+
+                        // Update view layouts
+                        toggleProfileModal(false);
+                        displayAuthScreenOverlay(true);
+                        launchToast("Your entire account and associated telemetry datasets have been purged successfully.", "success");
+                    } catch (err) {
+                        console.error("Purging failed: ", err);
+                        launchToast("Purge execution crashed. Please check your network connection.", "error");
+                    }
+                } else if (res.confirmed) {
+                    launchToast("Keyword mismatch. Purging routine aborted.", "warning");
+                }
+            });
         }
 
         function resetActiveStudentEngine(preserveOverflow = false) {
@@ -1509,6 +1652,13 @@
             };
 
             globalDatabase.activeStudentId = workspaceId;
+            
+            // Partitioned explicit write saves for both users and the student ledger
+            if (auth.currentUser) {
+                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', teacherId), teacher);
+                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', guardianId), guardian);
+                setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', workspaceId), globalDatabase.students[workspaceId]);
+            }
             save();
             launchToast("Nodes successfully linked inside graph framework.", "success");
             render();
@@ -2087,40 +2237,30 @@
         onAuthStateChanged(auth, async (user) => {
             if (!user) return;
             
-            // RULE 1: Strict Document Path for public data
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'mentorlog_master');
-            
-            // RULE 2: Single Document Listener, no complex queries
-            onSnapshot(docRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    const incomingDb = docSnap.data();
-                    
-                    // Maintain current user perspective, but sync metrics seamlessly
-                    const currentLocalUser = globalDatabase.activeUserId;
-                    globalDatabase = { ...globalDatabase, ...incomingDb };
-                    globalDatabase.activeUserId = currentLocalUser;
-                } else {
-                    // Fallback to local sandbox if no cloud structure exists yet
-                    const cachedLocal = localStorage.getItem('mentorlog_production_state_v2');
-                    if (cachedLocal) {
-                        try {
-                            globalDatabase = JSON.parse(cachedLocal);
-                        } catch(err) {
-                            console.warn("Failed to parse cachedLocal state, resetting to fallback.", err);
-                            submitNewStudentDirectlyFallback();
-                        }
-                    } else {
-                        submitNewStudentDirectlyFallback();
-                    }
-                }
-
-                // Enforce valid schema properties
+            // Listen to partitioned Users Collection (RULE 2: Fetch all matching documents seamlessly)
+            const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+            onSnapshot(usersCol, (snapshot) => {
                 globalDatabase.users = globalDatabase.users || {};
-                globalDatabase.students = globalDatabase.students || {};
-
+                snapshot.forEach(docSnap => {
+                    globalDatabase.users[docSnap.id] = docSnap.data();
+                });
+                ensureSampleUsersExist();
                 render();
             }, (error) => {
-                console.error("Firestore listening pipeline error: ", error);
+                console.error("Firestore users subscription error: ", error);
+            });
+
+            // Listen to partitioned Students Collection
+            const studentsCol = collection(db, 'artifacts', appId, 'public', 'data', 'students');
+            onSnapshot(studentsCol, (snapshot) => {
+                globalDatabase.students = globalDatabase.students || {};
+                snapshot.forEach(docSnap => {
+                    globalDatabase.students[docSnap.id] = docSnap.data();
+                });
+                ensureDefaultStudentExists();
+                render();
+            }, (error) => {
+                console.error("Firestore students subscription error: ", error);
             });
         });
 
