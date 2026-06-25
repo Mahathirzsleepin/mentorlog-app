@@ -4,10 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MentorLog — Premium Tuition Assistant</title>
-    
-    <!-- Tailwind CSS for modern responsive styling -->
+    <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <!-- Google Fonts for premium typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,7 +81,7 @@
     <!-- IN-APP TOAST NOTIFICATION PORTAL -->
     <div id="toast-wrapper-portal" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none max-w-sm w-full"></div>
 
-    <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL (FOR ALL INPUTS, PROMPTS & CONFIRMATIONS) -->
+    <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL (FOR ALL IMPUTS, PROMPTS & CONFIRMATIONS) -->
     <div id="custom-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden">
         <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-md p-6 transform scale-95 transition-all duration-300 space-y-4">
             <h3 id="modal-title" class="text-xs font-bold text-slateCharcoal uppercase tracking-wider">Attention Required</h3>
@@ -136,16 +134,6 @@
                     <input type="text" id="prof-hsc" placeholder="e.g., 5.00" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
                 </div>
             </div>
-
-            <!-- DANGER ZONE: ACCOUNT DELETION SYSTEM -->
-            <div class="border-t border-red-100 pt-4 mt-4 space-y-2">
-                <h4 class="text-[10px] font-bold text-red-500 uppercase tracking-wider">Danger Zone</h4>
-                <p class="text-[11px] text-gray-500">Permanently delete your profile from the cloud. This action clears your logged sessions, active classes, and disconnects linked users. There is no recovery option.</p>
-                <button onclick="deleteUserProfile()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs py-2.5 rounded-lg transition-all text-center">
-                    Delete My Account Permanently
-                </button>
-            </div>
-
             <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button onclick="toggleProfileModal(false)" class="px-4 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-lg transition-all">Cancel</button>
                 <button onclick="saveUserProfile()" class="px-4 py-2 text-xs font-semibold bg-terracotta text-white hover:bg-terracottaHover rounded-lg transition-all">Save Changes</button>
@@ -584,7 +572,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // EXPLICIT LIVE SECURED FIREBASE PATH KEYS AS PROVIDED
+        // GLOBAL CONFIG INTEGRATED SAFELY
         const firebaseConfig = {
             apiKey: "AIzaSyCcCSPehpeVds6YXNXOUWjAsHdlByXcpsY",
             authDomain: "mentorlog-47ca9.firebaseapp.com",
@@ -627,13 +615,18 @@
         // Dynamic State Save to Firestore (Synchronized Database)
         async function save() {
             const currentUser = auth.currentUser;
+            
+            // Ensure structural collections exist prior to saving
+            globalDatabase.users = globalDatabase.users || {};
+            globalDatabase.students = globalDatabase.students || {};
+            
             if (!currentUser) {
                 // Local fallback save if offline or auth initializing
                 localStorage.setItem('mentorlog_production_state_v2', JSON.stringify(globalDatabase));
                 return;
             }
             try {
-                // RULE 1: STRICT PATH CONSTRAINTS FOR GENERAL STORAGE
+                // RULE 1: STRICT PATHS CONSTRAINTS FOR GENERAL STORAGE
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'mentorlog_master');
                 await setDoc(docRef, globalDatabase);
             } catch(e) {
@@ -644,7 +637,8 @@
 
         // HOISTED HELPER FUNCTIONS FOR WORKSPACE STATE RESOLUTIONS
         function getActiveStudent() {
-            if(!globalDatabase.students[globalDatabase.activeStudentId]) {
+            globalDatabase.students = globalDatabase.students || {};
+            if(!globalDatabase.activeStudentId || !globalDatabase.students[globalDatabase.activeStudentId]) {
                 const availableKeys = Object.keys(globalDatabase.students);
                 if(availableKeys.length > 0) {
                     globalDatabase.activeStudentId = availableKeys[0];
@@ -657,6 +651,7 @@
 
         function resetActiveStudentEngine(preserveOverflow = false) {
             const student = getActiveStudent();
+            if (!student) return;
             const start = new Date();
             const target = new Date();
             target.setMonth(target.getMonth() + 1);
@@ -698,6 +693,7 @@
 
         function submitNewStudentDirectlyFallback() {
             const cleanId = 'std_fallback_def';
+            globalDatabase.students = globalDatabase.students || {};
             globalDatabase.students[cleanId] = {
                 id: cleanId,
                 studentName: "Unlinked Workspace Class",
@@ -707,7 +703,7 @@
                 monthlyPayment: "Negotiated Standard Rate",
                 isActive: true,
                 startDate: new Date().toISOString(),
-                targetEndDate: null,
+                targetEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 classesLogged: 0,
                 totalMinutes: 0,
                 runningPartialMinutes: 0,
@@ -828,54 +824,6 @@
             toggleProfileModal(false);
             render();
             launchToast("User credentials and profiles updated successfully.", "success");
-        }
-
-        // DESTRUCTIVE ACTION: ACCOUNT PERMANENT PURGE
-        window.deleteUserProfile = async function() {
-            toggleProfileModal(false); // Close modal before launching verification sequence
-            const confirmResult = await openCustomModal(
-                "Permanently Delete Account",
-                "WARNING: This will permanently delete your account profile from the cloud, unlink shared portals, and wipe your scheduled classes. This action cannot be undone. Type 'DELETE' to confirm:",
-                true
-            );
-
-            if (confirmResult.confirmed && confirmResult.value === 'DELETE') {
-                const targetUserId = globalDatabase.activeUserId;
-                if (!targetUserId) return;
-
-                // 1. Remove profile record
-                delete globalDatabase.users[targetUserId];
-
-                // 2. Clear related student accounts and logging metrics
-                const studentsToWipe = [];
-                Object.keys(globalDatabase.students).forEach(sId => {
-                    const student = globalDatabase.students[sId];
-                    if (student.teacherName === targetUserId || sId.includes(targetUserId)) {
-                        studentsToWipe.push(sId);
-                    }
-                });
-
-                studentsToWipe.forEach(sId => {
-                    delete globalDatabase.students[sId];
-                });
-
-                // Clear reference state
-                if (studentsToWipe.includes(globalDatabase.activeStudentId)) {
-                    globalDatabase.activeStudentId = "std_default";
-                }
-
-                // 3. Sync database state
-                await save();
-
-                // 4. Force log out device locally
-                globalDatabase.activeUserId = null;
-                isViewingMirroredPartner = false;
-
-                displayAuthScreenOverlay(true);
-                launchToast("Your account and database logs have been permanently deleted.", "success");
-            } else if (confirmResult.confirmed) {
-                launchToast("Deletion canceled. You must type 'DELETE' exactly to confirm.", "warning");
-            }
         }
 
         window.setAuthMode = function(mode) {
@@ -1023,7 +971,7 @@
                 render();
 
                 setTimeout(() => {
-                    alert(`IDENTITY NODE INSTANTIATED SUCCESSFULLY\n\nYour permanent login verification passcode is:\n\n${generatedId}\n\nKeep this key safe to access your logs from any device.`);
+                    alert(`IDENTITY NODE INSTANTIATED SUCCESSFUL\n\nYour permanent login verification string key is:\n\n${generatedId}\n\nCache this record safely to access your session logs.`);
                 }, 100);
             }
         }
@@ -1310,7 +1258,7 @@
                     color: 'text-indigo-400',
                     badge: 'Partial'
                 });
-                launchToast("Partial duration block captured and cached.", "info");
+                launchToast(`Partial duration block captured and cached.`, "info");
             }
 
             save();
@@ -1515,6 +1463,7 @@
             launchToast("System environment temporal warp committed.", "info");
         }
 
+        // Peer Linking Implementation
         window.performLinkExecutionBetweenAgents = function(teacherId, guardianId) {
             const teacher = globalDatabase.users[teacherId];
             const guardian = globalDatabase.users[guardianId];
@@ -1565,6 +1514,7 @@
             render();
         }
 
+        // Shared view setup helper
         window.setView = function(view) {
             const student = getActiveStudent();
             const slider = document.getElementById('view-slider');
@@ -1592,10 +1542,11 @@
                 if(btnGuardian) { btnGuardian.classList.add('text-slateCharcoal'); btnGuardian.classList.remove('text-gray-500'); }
                 if(btnTeacher) { btnTeacher.classList.remove('text-slateCharcoal'); btnTeacher.classList.add('text-gray-500'); }
                 if(tControls) tControls.classList.add('hidden');
-                if(gControls) gControls.rmv = gControls.classList.remove('hidden');
+                if(gControls) gControls.remove('hidden');
             }
         }
 
+        // Helper function for toggling sidebar layout
         window.applySidebarState = function() {
             const sidebar = document.getElementById('sidebar');
             const toggleIcon = document.getElementById('toggle-button-icon');
@@ -1633,6 +1584,7 @@
             launchToast("Active contract ledger index shifted.", "info");
         }
 
+        // BILLING CYCLE MULTI-MONTH STACK DISMISSAL ENGINE
         window.dismissInvoiceCard = function(invoiceId) {
             const student = getActiveStudent();
             const cardElement = document.getElementById(`sticky-note-${invoiceId}`);
@@ -1651,6 +1603,7 @@
             }, 700);
         }
 
+        // DYNAMIC OVERLAPPING INVOICE CARDS RENDERING LOGIC
         function renderStickyNotesStack() {
             const wrapper = document.getElementById('guardian-sticky-wrapper');
             if (!wrapper) return;
@@ -1662,10 +1615,11 @@
                 wrapper.classList.remove('hidden');
                 wrapper.innerHTML = ''; // Fresh DOM repaint
                 
+                // Stack notes logically with dynamic absolute overlap offsets
                 activeInvoices.forEach((inv, index) => {
                     const isTop = index === activeInvoices.length - 1;
-                    const offsetRotation = (index % 3 - 1) * 3; 
-                    const offsetTranslateY = index * 12; 
+                    const offsetRotation = (index % 3 - 1) * 3; // Rotates slightly for messy, realistic desk-look
+                    const offsetTranslateY = index * 12; // Visual stacked depth offset
                     const offsetTranslateX = (index % 2 === 0 ? 4 : -4);
                     const zIndex = 50 + index;
                     
@@ -1674,7 +1628,7 @@
                     note.className = "absolute top-0 right-0 hanging-sticky-note cursor-pointer w-44 bg-amber-100 border border-amber-200 p-4 pt-6 rounded-b-md text-slateCharcoal text-xs flex flex-col items-center text-center gap-1.5 transition-all select-none hover:bg-amber-50";
                     note.style.transform = `rotate(${offsetRotation}deg) translateY(${offsetTranslateY}px) translateX(${offsetTranslateX}px)`;
                     note.style.zIndex = zIndex;
-                    note.style.pointerEvents = isTop ? 'auto' : 'none'; 
+                    note.style.pointerEvents = isTop ? 'auto' : 'none'; // Only top card responds to touch/click
                     
                     note.innerHTML = `
                         <div class="font-bold text-[10px] tracking-wider uppercase text-amber-800">${inv.title}</div>
@@ -1698,8 +1652,18 @@
             }
         }
 
+        // Dynamic State UI Update Core
         window.render = function() {
             const student = getActiveStudent();
+            if (!student) {
+                console.warn("No active student selected or initialized.");
+                return;
+            }
+
+            // Enforce key objects are initialized safely
+            globalDatabase.users = globalDatabase.users || {};
+            globalDatabase.students = globalDatabase.students || {};
+
             const currentUser = globalDatabase.users[globalDatabase.activeUserId];
 
             if (currentUser) {
@@ -1722,13 +1686,14 @@
                 }
             }
 
+            // DYNAMICALLY RENDER ASSOCIATED PEER INFORMATION CARDS (MULTIPLE TEACHERS SUPPORTED)
             const partnerCardList = document.getElementById('partner-card-list');
             if(partnerCardList && currentUser) {
                 partnerCardList.innerHTML = '';
                 const activePartners = currentUser.associatedGuards || [];
                 
                 if (activePartners.length === 0) {
-                    partnerCardList.innerHTML = `<div class="text-[11px] text-gray-400 italic font-sans">No connected peer profiles linked to this workspace. Use the pairing section below.</div>`;
+                    partnerCardList.innerHTML = `<div class="text-[11px] text-gray-400 italic">No connected peer profiles linked to this workspace. Use the pairing section below.</div>`;
                 } else {
                     activePartners.forEach(pId => {
                         const peer = globalDatabase.users[pId];
@@ -1887,6 +1852,44 @@
                 }
             }
 
+            let tDelays = 0;
+            let sDelays = 0;
+            let tNotesHtml = '';
+            let sNotesHtml = '';
+
+            const safeLogs = student.logs || [];
+            safeLogs.forEach(log => {
+                const logDate = new Date(log.date).toLocaleDateString(undefined, {month: 'short', day: 'numeric'});
+                if (log.badge === 'Paused') {
+                    tDelays++;
+                    tNotesHtml += `<div class="bg-white border border-[#f0ece6] p-1.5 rounded-md shadow-sm"><span class="font-bold text-honeyAmber">[${logDate}]</span> ${log.details}</div>`;
+                }
+                if (log.badge === 'Absent' || log.badge === 'Postponed') {
+                    sDelays++;
+                    sNotesHtml += `<div class="bg-white border border-[#f5ebe0] p-1.5 rounded-md shadow-sm"><span class="font-bold text-softRed">[${logDate}]</span> ${log.details}</div>`;
+                }
+            });
+
+            const countTeacherDelaysEl = document.getElementById('count-teacher-delays');
+            const countStudentDelaysEl = document.getElementById('count-student-delays');
+            const interruptionSummaryBadgeEl = document.getElementById('interruption-summary-badge');
+            const listTeacherNotesEl = document.getElementById('list-teacher-notes');
+            const listStudentNotesEl = document.getElementById('list-student-notes');
+
+            if (countTeacherDelaysEl) countTeacherDelaysEl.innerText = `${tDelays} Count`;
+            if (countStudentDelaysEl) countStudentDelaysEl.innerText = `${sDelays} Count`;
+            if (interruptionSummaryBadgeEl) interruptionSummaryBadgeEl.innerText = `${tDelays + sDelays} System Variance Markers`;
+
+            if (listTeacherNotesEl) {
+                if (tNotesHtml) listTeacherNotesEl.innerHTML = tNotesHtml;
+                else listTeacherNotesEl.innerHTML = `<div class="text-gray-400 italic text-[10px]">No freeze instances registered inside active frame logs.</div>`;
+            }
+
+            if (listStudentNotesEl) {
+                if (sNotesHtml) listStudentNotesEl.innerHTML = sNotesHtml;
+                else listStudentNotesEl.innerHTML = `<div class="text-gray-400 italic text-[10px]">No notice data packets registered inside active frame logs.</div>`;
+            }
+
             const badge = document.getElementById('status-badge');
             
             if (badge) {
@@ -1922,6 +1925,7 @@
             if (cycleExpired && student.isActive) {
                 if (!student.unpaidInvoices) student.unpaidInvoices = [];
                 
+                // Determine expected outstanding invoices based on completed months/overdues
                 const outstandingTotal = Math.max(1, student.completedCyclesCount);
                 while (student.unpaidInvoices.filter(i => !i.dismissed).length < outstandingTotal) {
                     const currentOutstandingCount = student.unpaidInvoices.filter(i => !i.dismissed).length;
@@ -1933,6 +1937,7 @@
                 }
             }
 
+            // TRIGGER SWINGING NOTES OVERLAPPING LAYER RENDERS
             renderStickyNotesStack();
 
             const guardianOverrideBox = document.getElementById('guardian-overdue-override-box');
@@ -2094,18 +2099,26 @@
                     const currentLocalUser = globalDatabase.activeUserId;
                     globalDatabase = { ...globalDatabase, ...incomingDb };
                     globalDatabase.activeUserId = currentLocalUser;
-                    
-                    render();
                 } else {
                     // Fallback to local sandbox if no cloud structure exists yet
                     const cachedLocal = localStorage.getItem('mentorlog_production_state_v2');
                     if (cachedLocal) {
-                        globalDatabase = JSON.parse(cachedLocal);
+                        try {
+                            globalDatabase = JSON.parse(cachedLocal);
+                        } catch(err) {
+                            console.warn("Failed to parse cachedLocal state, resetting to fallback.", err);
+                            submitNewStudentDirectlyFallback();
+                        }
                     } else {
                         submitNewStudentDirectlyFallback();
                     }
-                    render();
                 }
+
+                // Enforce valid schema properties
+                globalDatabase.users = globalDatabase.users || {};
+                globalDatabase.students = globalDatabase.students || {};
+
+                render();
             }, (error) => {
                 console.error("Firestore listening pipeline error: ", error);
             });
@@ -2118,10 +2131,28 @@
             // Fallback load checks
             const cachedLocal = localStorage.getItem('mentorlog_production_state_v2');
             if (cachedLocal) {
-                globalDatabase = JSON.parse(cachedLocal);
+                try {
+                    globalDatabase = JSON.parse(cachedLocal);
+                } catch(err) {
+                    console.warn("Failed to parse cachedLocal state, resetting to fallback.", err);
+                    submitNewStudentDirectlyFallback();
+                }
             } else {
                 submitNewStudentDirectlyFallback();
             }
 
+            // Clean instantiation safety check
+            globalDatabase.users = globalDatabase.users || {};
+            globalDatabase.students = globalDatabase.students || {};
+
             if (!globalDatabase.activeUserId) {
-                displayAuthScreenOverlay
+                displayAuthScreenOverlay(true);
+            } else {
+                displayAuthScreenOverlay(false);
+                applySidebarState();
+                render();
+            }
+        });
+    </script>
+</body>
+</html>
