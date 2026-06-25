@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MentorLog — Premium Tuition Assistant</title>
+    
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts for premium typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Instrument Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        almond: '#fbf9f6',
+                        cardBg: '#ffffff',
+                        slateCharcoal: '#2d3748',
+                        terracotta: '#c96f53',
+                        terracottaHover: '#b25e44',
+                        sage: '#8fa89b',
+                        honeyAmber: '#dfa35b',
+                        softRed: '#e5989b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #fbf9f6;
+            color: #2d3748;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #fbf9f6; }
+        ::-webkit-scrollbar-thumb { background: #eaddcd; border-radius: 10px; }
+
+        @keyframes swing-physics {
+            0% { transform: rotate(-1.5deg); }
+            50% { transform: rotate(1.5deg); }
+            100% { transform: rotate(-1.5deg); }
+        }
+        @keyframes drop-away {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            30% { transform: translateY(-12px) rotate(-1deg); opacity: 1; }
+            100% { transform: translateY(120vh) rotate(12deg); opacity: 0; }
+        }
+        .hanging-sticky-note {
+            transform-origin: top center;
+            animation: swing-physics 5s ease-in-out infinite;
+            box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.06), 0 4px 8px -2px rgba(0, 0, 0, 0.02);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .hanging-sticky-note::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 14px;
+            background-color: rgba(234, 221, 205, 0.9);
+            backdrop-filter: blur(2px);
+            border-radius: 2px;
+        }
+        .fall-animation {
+            animation: drop-away 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen relative flex flex-col overflow-x-hidden select-none">
+
+    <!-- IN-APP TOAST NOTIFICATION PORTAL -->
+    <div id="toast-wrapper-portal" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none max-w-sm w-full"></div>
+
+    <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL (FOR ALL INPUTS, PROMPTS & CONFIRMATIONS) -->
+    <div id="custom-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-md p-6 transform scale-95 transition-all duration-300 space-y-4">
+            <h3 id="modal-title" class="text-xs font-bold text-slateCharcoal uppercase tracking-wider">Attention Required</h3>
+            <p id="modal-description" class="text-xs text-gray-500 leading-relaxed"></p>
+            <div id="modal-input-container" class="hidden">
+                <input type="text" id="modal-input-field" class="w-full text-xs px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none focus:border-terracotta">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button id="modal-btn-cancel" onclick="closeCustomModal(false)" class="px-4 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-lg transition-all">Cancel</button>
+                <button id="modal-btn-confirm" onclick="closeCustomModal(true)" class="px-4 py-2 text-xs font-semibold bg-terracotta text-white hover:bg-terracottaHover rounded-lg transition-all">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFILE MANAGEMENT DIALOG PANEL -->
+    <div id="profile-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[80] flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto space-y-4">
+            <h3 class="text-xs font-bold text-slateCharcoal uppercase tracking-wider border-b border-gray-100 pb-2">Configure Profile Details</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <div class="sm:col-span-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Avatar Image URL (Optional)</label>
+                    <input type="text" id="prof-img-url" placeholder="Paste link (https://...)" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Username / Name (Mandatory)</label>
+                    <input type="text" id="prof-username" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Contact No. (Optional)</label>
+                    <input type="text" id="prof-contact" placeholder="e.g., +88017..." class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Email Address (Optional)</label>
+                    <input type="email" id="prof-email" placeholder="e.g., mail@domain.com" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Education Background (Optional)</label>
+                    <input type="text" id="prof-edu" placeholder="e.g., B.Sc in Physics" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Current Institution (Optional)</label>
+                    <input type="text" id="prof-inst" placeholder="School, College or University" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">SSC GPA Grade (Optional)</label>
+                    <input type="text" id="prof-ssc" placeholder="e.g., 5.00" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">HSC GPA Grade (Optional)</label>
+                    <input type="text" id="prof-hsc" placeholder="e.g., 5.00" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg">
+                </div>
+            </div>
+
+            <!-- DANGER ZONE: ACCOUNT DELETION SYSTEM -->
+            <div class="border-t border-red-100 pt-4 mt-4 space-y-2">
+                <h4 class="text-[10px] font-bold text-red-500 uppercase tracking-wider">Danger Zone</h4>
+                <p class="text-[11px] text-gray-500">Permanently delete your profile from the cloud. This action clears your logged sessions, active classes, and disconnects linked users. There is no recovery option.</p>
+                <button onclick="deleteUserProfile()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold text-xs py-2.5 rounded-lg transition-all text-center">
+                    Delete My Account Permanently
+                </button>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                <button onclick="toggleProfileModal(false)" class="px-4 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-100 rounded-lg transition-all">Cancel</button>
+                <button onclick="saveUserProfile()" class="px-4 py-2 text-xs font-semibold bg-terracotta text-white hover:bg-terracottaHover rounded-lg transition-all">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE AUTHENTICATION COVER (SIGN IN & SIGN UP SCREENS) -->
+    <div id="auth-screen-overlay" class="fixed inset-0 bg-[#fbf9f6] z-50 flex items-center justify-center p-4 hidden overflow-y-auto">
+        <div class="w-full max-w-md bg-white border border-[#eaddcd] rounded-2xl shadow-xl p-8 space-y-6 my-auto">
+            <div class="text-center">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-sage rounded-full text-[10px] font-bold mb-3 uppercase tracking-wider" id="db-status-badge">
+                    <span class="w-1.5 h-1.5 rounded-full bg-sage animate-ping"></span> Live Cloud Synced
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight text-slateCharcoal">MentorLog</h2>
+                <p class="text-xs text-gray-400 mt-1">Live tuition schedule, logs & billing synchronizer</p>
+            </div>
+
+            <!-- Sign in vs Register tabs switcher -->
+            <div class="bg-[#f0ece6] p-1 rounded-xl flex">
+                <button id="auth-tab-login" onclick="setAuthMode('login')" class="flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-white text-slateCharcoal shadow-sm transition-all">
+                    Sign In
+                </button>
+                <button id="auth-tab-register" onclick="setAuthMode('register')" class="flex-1 text-center text-xs font-semibold py-2 rounded-lg text-gray-500 transition-all">
+                    New to App?
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Choose Your Access Role</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="auth-role-teacher" onclick="setAuthRole('teacher')" class="py-2.5 text-xs font-bold rounded-xl border-2 border-slateCharcoal bg-slateCharcoal text-white transition-all">
+                            Teacher / Mentor
+                        </button>
+                        <button id="auth-role-guardian" onclick="setAuthRole('guardian')" class="py-2.5 text-xs font-medium rounded-xl border border-[#eaddcd] text-gray-600 bg-[#fbf9f6] hover:bg-gray-50 transition-all">
+                            Parent / Guardian
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Signup username field -->
+                <div id="auth-field-name-group" class="hidden space-y-3">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Username (Mandatory)</label>
+                        <input type="text" id="auth-input-name" placeholder="e.g., Alex Km." class="w-full text-xs px-3 py-2.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Signin credential input card -->
+                <div id="auth-field-credential-group">
+                    <label id="auth-label-credential" class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">System Account Passcode Key</label>
+                    <input type="text" id="auth-input-credential" placeholder="Enter key (e.g., ML-T-SAMPLE)" class="w-full text-xs px-3 py-2.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none focus:border-terracotta font-mono tracking-wider">
+                </div>
+            </div>
+
+            <button id="auth-main-action-btn" onclick="processAuthSubmission()" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-semibold text-xs py-3 rounded-xl shadow-md transition-all tracking-wide">
+                Verify Credentials
+            </button>
+
+            <!-- DEMO LOGIN QUICK LAUNCH CHANNELS -->
+            <div class="pt-4 border-t border-gray-100 space-y-2">
+                <span class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 text-center">Or Try Instant Demo Access</span>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-demo-teacher" class="py-2 px-3 text-xs font-semibold rounded-xl bg-orange-50 text-terracotta border border-orange-200 hover:bg-orange-100 transition-all text-center">
+                        Demo Teacher 👨‍🏫
+                    </button>
+                    <button id="btn-demo-parent" class="py-2 px-3 text-xs font-semibold rounded-xl bg-teal-50 text-sage border border-teal-200 hover:bg-teal-100 transition-all text-center">
+                        Demo Parent 👥
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONSOLE APPLICATION SYSTEM RUNTIME -->
+    <div id="main-application-viewport" class="flex flex-col lg:flex-row flex-1 min-w-0">
+        
+        <!-- SIDE CONTROL PANEL / RUNTIME DIALER LEDGER -->
+        <aside id="sidebar" class="w-full lg:w-80 bg-[#f4eee4] border-b lg:border-b-0 lg:border-r border-[#eaddcd] p-6 space-y-6 shrink-0 z-40 transition-all duration-300 ease-in-out overflow-hidden relative">
+            <div class="flex justify-between items-center border-b border-[#eaddcd] pb-3">
+                <div>
+                    <h2 class="text-xs font-bold uppercase tracking-widest text-slateCharcoal/60 mb-1">Tuition Profiles</h2>
+                    <p class="text-[11px] text-gray-500">Manage logs & class records.</p>
+                </div>
+                <button onclick="toggleProfileModal(true)" class="text-terracotta hover:text-terracottaHover font-bold text-xs underline">Edit Profile</button>
+            </div>
+
+            <!-- PARTNER VISIBILITY METRIC SECTION -->
+            <div id="sidebar-partners-area" class="bg-white border border-[#eaddcd] rounded-xl p-3 shadow-sm space-y-3">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider text-slateCharcoal/60 flex items-center justify-between">
+                    <span>Connected Peer Profiles</span>
+                    <span class="w-2 h-2 rounded-full bg-sage"></span>
+                </h3>
+                <div id="partner-card-list" class="space-y-3"></div>
+            </div>
+
+            <!-- TUITION PLAN BLUEPRINT BUILDER FORM (TEACHER VIEW) -->
+            <div id="new-tuition-block-container" class="bg-white border border-[#eaddcd] rounded-xl p-3 shadow-sm space-y-3">
+                <button onclick="toggleStudentForm()" class="w-full bg-slateCharcoal hover:bg-gray-700 text-white font-medium text-xs py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    New Student Class
+                </button>
+
+                <div id="new-student-form" class="hidden space-y-2.5 border-t border-gray-100 pt-3 text-xs">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Student Name</label>
+                        <input type="text" id="form-student-name" placeholder="Name" class="w-full px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Mentor Name</label>
+                        <input type="text" id="form-teacher-name" placeholder="Mentor" class="w-full px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Institution</label>
+                            <input type="text" id="form-institution" placeholder="Institution" class="w-full px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Class/Grade</label>
+                            <input type="text" id="form-class" placeholder="Grade details" class="w-full px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Remuneration Rate</label>
+                        <input type="text" id="form-payment" placeholder="e.g., 15,000 BDT / Month" class="w-full px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
+                    </div>
+                    <button onclick="submitNewStudent()" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-semibold text-[11px] py-2 rounded-md transition-all shadow-sm">
+                        Instantiate Student
+                    </button>
+                </div>
+            </div>
+
+            <!-- TUITION REGISTRIES SELECTOR WIDGET -->
+            <div id="student-selector-section" class="space-y-2">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider text-slateCharcoal/50">Active Class Ledger</h3>
+                <div id="student-list-container" class="space-y-1.5 max-h-[180px] overflow-y-auto pr-1"></div>
+            </div>
+
+            <!-- HISTORIC DATE SEARCH ENGINE -->
+            <div class="bg-white border border-[#eaddcd] rounded-xl p-3 shadow-sm space-y-2">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider text-slateCharcoal/60 flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    Search Logs by Date
+                </h3>
+                <input type="date" id="search-date-input" oninput="handleDateSearch()" class="w-full text-xs px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
+                <button id="clear-search-btn" onclick="clearDateSearch()" class="hidden w-full text-center text-[10px] text-terracotta hover:underline font-medium">Clear Filter</button>
+            </div>
+
+            <!-- METADATA FOOTER FRAME -->
+            <div class="absolute bottom-4 left-4 right-4 bg-white/70 backdrop-blur-md border border-[#eaddcd] p-3 rounded-xl flex items-center justify-between shadow-sm">
+                <div class="truncate mr-2 flex items-center gap-2">
+                    <img id="avatar-footer-preview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" class="w-7 h-7 rounded-full object-cover border border-[#eaddcd]">
+                    <div class="truncate">
+                        <div id="user-profile-tag-name" class="font-bold text-xs text-slateCharcoal truncate">Loading</div>
+                        <div id="user-profile-tag-role" class="text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">—</div>
+                    </div>
+                </div>
+                <button onclick="terminateAuthenticatedSession()" class="text-[10px] font-bold text-terracotta hover:text-red-700 underline shrink-0">
+                    Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <!-- MASTER LAYOUT CONSOLE WINDOW -->
+        <div class="flex-1 min-w-0 relative pb-16">
+            
+            <!-- SIDEBAR MINIMIZE ACTION BUTTON -->
+            <button id="sidebar-toggle-btn" onclick="toggleSidebarLayout()" class="hidden lg:flex absolute top-7 left-0 transform -translate-x-1/2 w-7 h-7 rounded-full bg-slateCharcoal hover:bg-neutral-800 text-white items-center justify-center shadow-md z-50 transition-all duration-300 focus:outline-none border border-[#eaddcd]/60">
+                <svg id="toggle-button-icon" class="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+
+            <!-- SWINGING STICKY NOTE FOR BILLING NOTICES (MULTI-MONTH INVOICES OVERLAP AREA) -->
+            <div id="guardian-sticky-wrapper" class="fixed top-0 right-4 sm:right-12 z-50 pointer-events-none w-44 h-96 flex flex-col justify-start"></div>
+
+            <!-- APPLICATION TOP NAV HEADER -->
+            <header class="max-w-5xl mx-auto px-4 pt-6 pb-4 flex flex-col sm:flex-row justify-between items-center border-b border-[#eaddcd] gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-bold tracking-tight text-slateCharcoal">MentorLog <span id="header-student-target" class="text-terracotta font-normal">Loading...</span></h1>
+                        <span id="cycle-badge-count" class="bg-slateCharcoal text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide shadow-sm">Completed Months: 0</span>
+                    </div>
+                    <p id="header-profile-subtext" class="text-xs text-gray-500">Asynchronous Precision Time-Delta Log Matrix</p>
+                </div>
+                
+                <!-- Role Dashboard Toggle switcher -->
+                <div class="bg-[#f0ece6] p-1 rounded-full flex items-center relative w-64 h-10 shadow-inner select-none">
+                    <button onclick="attemptViewSwitch('teacher')" id="btn-view-teacher" class="flex-1 text-center text-xs font-semibold z-10 py-1.5 rounded-full transition-all duration-300 flex items-center justify-center gap-1">
+                        Teacher Log
+                    </button>
+                    <button onclick="attemptViewSwitch('guardian')" id="btn-view-guardian" class="flex-1 text-center text-xs font-semibold z-10 py-1.5 rounded-full transition-all duration-300 flex items-center justify-center gap-1">
+                        Guardian View
+                    </button>
+                    <div id="view-slider" class="absolute top-1 bottom-1 left-1 w-[124px] bg-white rounded-full shadow-sm transition-all duration-300 ease-out"></div>
+                </div>
+            </header>
+
+            <!-- MAIN WORKING GRID INTERFACE MATRIX -->
+            <main class="max-w-5xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- CONTENT OPERATIONAL CONTROLS TRACK FRAME -->
+                <div class="lg:col-span-2 space-y-6">
+                    
+                    <!-- DYNAMIC DIRECT INTEGRATION CONNECTION HUD CARD -->
+                    <div class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm space-y-4">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Account Connections</h3>
+                            <span class="text-[10px] bg-amber-50 text-honeyAmber px-2 py-0.5 rounded-full font-bold">Unlinked Profile Tunnel</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div class="bg-orange-50/40 border border-orange-100 p-4 rounded-xl flex items-center justify-between">
+                                <div>
+                                    <span class="block text-[10px] text-gray-400 font-bold uppercase">Your Connection Code</span>
+                                    <span id="txt-display-node-key" class="text-sm font-mono font-bold text-slateCharcoal mt-0.5 block tracking-wider">Loading...</span>
+                                </div>
+                                <button onclick="copyLocalNodeKey()" class="text-[11px] text-terracotta hover:underline font-bold">Copy Key</button>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-[10px] text-gray-400 font-bold uppercase">Connect with Partner Key</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="input-link-peer-key" placeholder="Paste partner key here" class="flex-1 text-xs font-mono px-3 py-2 border border-[#eaddcd] rounded-xl bg-[#fbf9f6] focus:outline-none focus:border-terracotta tracking-wider">
+                                    <button onclick="executeDirectPairing()" class="bg-slateCharcoal hover:bg-neutral-800 text-white font-semibold text-xs px-4 py-2 rounded-xl transition-all shadow-sm">
+                                        Link Accounts
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MIRROR DASHBOARD CROSS ACCESS BRIDGE CONTROLLER CARD -->
+                    <div id="mirror-access-box" class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm space-y-4 hidden">
+                        <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Dashboard Mirror Controls</h3>
+                            <span id="txt-permission-status" class="text-[10px] bg-red-50 text-softRed px-2 py-0.5 rounded-full font-bold">No Active Permission</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+                            <p class="text-[11px] text-gray-400 max-w-md">Give permission to let your partner view your layout perspective, or click to peer into theirs.</p>
+                            <div class="flex gap-2">
+                                <button id="btn-toggle-mirror-permission" onclick="toggleMirrorPermission()" class="bg-terracotta hover:bg-terracottaHover text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all whitespace-nowrap">
+                                    Allow Partner Viewing
+                                </button>
+                                <button id="btn-access-partner-view" onclick="accessPartnerViewFrame()" class="bg-slateCharcoal hover:bg-neutral-800 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all whitespace-nowrap opacity-50 cursor-not-allowed" disabled>
+                                    View Partner Dashboard
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SYSTEM METRIC EXPIRED NOTIFICATION ZONE -->
+                    <div id="payment-alert" class="hidden transform transition-all duration-500"></div>
+
+                    <!-- RUNTIME METRICS SHEET -->
+                    <div class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                        <div id="status-badge" onclick="toggleActiveStatus()" class="absolute top-4 right-4 text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full cursor-pointer select-none transition-all">
+                            Active Parameters
+                        </div>
+                        
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Tuition Progress</h2>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <div class="text-3xl font-bold text-slateCharcoal" id="metric-classes">0 / 12</div>
+                                <div class="text-xs text-gray-500 mt-1">Completed Classes</div>
+                            </div>
+                            <div>
+                                <div class="text-3xl font-bold text-slateCharcoal" id="metric-hours">0.00 / 21</div>
+                                <div class="text-xs text-gray-500 mt-1">Total Hours Taught</div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Bar indicator -->
+                        <div class="w-full bg-[#f0ece6] h-2 rounded-full overflow-hidden mb-3">
+                            <div id="progress-bar" class="bg-terracotta h-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                        </div>
+
+                        <!-- CURRENT PARTIAL TRACK ACCUMULATION CONTAINER -->
+                        <div id="due-widget" class="transition-all duration-300 hidden mb-4 p-3 rounded-xl bg-orange-50/70 border border-orange-200/50 flex justify-between items-center text-xs text-orange-800"></div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs border-t border-[#f7f4f0] pt-4 text-gray-600">
+                            <div><span class="text-gray-400">Month Inception:</span> <span id="date-start">—</span></div>
+                            <div><span class="text-gray-400">Monthly Target Deadline:</span> <span id="date-target">—</span></div>
+                        </div>
+                    </div>
+
+                    <!-- RUNTIME INGESTION INTERFACE: TEACHER CONTROLS -->
+                    <div id="teacher-controls" class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm space-y-6">
+                        <div class="flex justify-between items-center border-b border-[#f7f4f0] pb-2">
+                            <h2 class="text-sm font-bold text-slateCharcoal">Instructor Controls</h2>
+                            <div class="flex bg-[#f0ece6] p-0.5 rounded-lg text-[11px]">
+                                <button onclick="setLogTab('standard')" id="tab-std" class="px-3 py-1 font-medium rounded-md bg-white text-slateCharcoal shadow-sm transition-all">Full Class Block</button>
+                                <button onclick="setLogTab('partial')" id="tab-part" class="px-3 py-1 font-medium rounded-md text-gray-500 transition-all">Partial Class Time</button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#fbf9f6] p-3 rounded-xl border border-[#eaddcd]">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-semibold text-gray-600">Session Type:</span>
+                                <div class="bg-white p-0.5 rounded-lg flex border border-[#eaddcd] w-32">
+                                    <button id="mode-offline" onclick="setClassMode('offline')" class="flex-1 py-1 text-[10px] font-medium rounded-md bg-white shadow-sm text-slateCharcoal transition-all">Offline</button>
+                                    <button id="mode-online" onclick="setClassMode('online')" class="flex-1 py-1 text-[10px] font-medium rounded-md text-gray-500 transition-all">Online</button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="unilateralClearCycle()" class="bg-gray-200 hover:bg-gray-300 text-slateCharcoal font-medium text-[11px] py-1.5 px-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5">
+                                    Clear This Month's Progress
+                                </button>
+                                <button onclick="triggerPaymentReset(false)" class="bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] py-1.5 px-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5">
+                                    Start Next Month
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STANDARD LOG MODALITY FRAME -->
+                        <div id="panel-standard" class="space-y-3">
+                            <p class="text-[11px] text-gray-400">Log a full scheduled class session lasting exactly **1 Hour 45 Minutes** (105 minutes).</p>
+                            <button onclick="handleLogClass(105)" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-medium text-sm py-3 px-6 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2">
+                                Log Full Class (1h 45m)
+                            </button>
+                        </div>
+
+                        <!-- PARTIAL LOG MODALITY FRAME -->
+                        <div id="panel-partial" class="hidden space-y-3">
+                            <p class="text-[11px] text-gray-400">Register shorter or custom class durations. This accumulates automatically toward the 1h 45m total.</p>
+                            <div class="flex gap-3 items-end">
+                                <div class="flex-1">
+                                    <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Hours</label>
+                                    <input type="number" id="custom-hours" min="0" value="0" class="w-full px-3 py-2 text-sm bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none focus:border-terracotta">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Minutes</label>
+                                    <input type="number" id="custom-minutes" min="0" max="59" value="0" class="w-full px-3 py-2 text-sm bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none focus:border-terracotta">
+                                </div>
+                                <button onclick="handleLogCustomTime()" class="bg-slateCharcoal hover:bg-gray-700 text-white font-medium text-xs py-2.5 px-4 h-[38px] rounded-xl transition-all shadow-sm">
+                                    Log Partial Time
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- SUSPENSION CONTROLS INTERFACE -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-[#f7f4f0]">
+                            <div class="bg-[#fdfaf7] border border-[#f5ebe0] rounded-xl p-4 flex flex-col justify-between">
+                                <div>
+                                    <span class="block text-xs font-semibold text-gray-700 mb-1">Student Absent Today</span>
+                                    <p class="text-[11px] text-gray-400 mb-3">Record the unannounced cancellation in the logs. Keeps monthly class numbers safe.</p>
+                                </div>
+                                <button onclick="handleCancellation()" class="w-full bg-white hover:bg-[#fff0ed] text-softRed border border-softRed/30 font-medium text-xs py-2 px-4 rounded-lg transition-all text-center">
+                                    1-Tap Absent Notice
+                                </button>
+                            </div>
+
+                            <div class="bg-[#fbfaf5] border border-[#f3eee0] rounded-xl p-4 flex flex-col justify-between">
+                                <div>
+                                    <span class="block text-xs font-semibold text-gray-700 mb-1">Pause/Shift Monthly Cycle</span>
+                                    <p class="text-[11px] text-gray-400 mb-3">Freeze tracking progress during holidays or emergencies. Shunts payment dates cleanly.</p>
+                                </div>
+                                <div class="space-y-2">
+                                    <input type="text" id="pause-note" placeholder="Reason (e.g., Eid Vacation)" class="w-full px-2.5 py-1.5 text-xs bg-white border border-[#eaddcd] rounded-md focus:outline-none">
+                                    <button id="btn-pause" onclick="handleTogglePause()" class="w-full bg-white hover:bg-[#fff9f0] text-honeyAmber border border-honeyAmber/30 font-medium text-xs py-2 px-4 rounded-lg transition-all text-center">
+                                        Toggle Pause/Freeze
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RUNTIME INGESTION INTERFACE: PARENT / GUARDIAN OPERATIONS -->
+                    <div id="guardian-controls" class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm space-y-6 hidden">
+                        
+                        <!-- EXPLICIT OVERRIDE ENGINE MATRIX (LOCK RESTRAINED TO 10 DAYS ELAPSED POST LIMITS) -->
+                        <div id="guardian-overdue-override-box" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+                            <div class="flex gap-2">
+                                <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                <div>
+                                    <span class="block text-xs font-bold text-red-800">Forced Billing Overdue Reset Unlocked</span>
+                                    <p class="text-[11px] text-red-700/90 leading-relaxed mt-0.5">The current contract tracking period has scaled **10 days past expiration bounds** without any reset inputs from the mentor. Parents can now force clear progress logs.</p>
+                                </div>
+                            </div>
+                            <button onclick="triggerPaymentReset(true)" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-xs py-2.5 px-4 rounded-xl shadow-sm transition-all tracking-wide">
+                                Force Next Month Progress Start
+                            </button>
+                        </div>
+
+                        <!-- RESCHEDULE TERMINALS -->
+                        <div class="space-y-3">
+                            <h2 class="text-sm font-bold text-slateCharcoal border-b border-[#f7f4f0] pb-2">Student & Guardian Actions</h2>
+                            <label class="block text-xs font-semibold text-gray-600">Postpone or Reschedule Class Session</label>
+                            <div class="space-y-2">
+                                <input type="text" id="postpone-note" placeholder="Reason (e.g., Midterm Exams)" class="w-full px-3 py-2.5 text-xs bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none">
+                                <button onclick="handlePostpone()" class="w-full bg-slateCharcoal hover:bg-gray-700 text-white font-medium text-xs py-3 px-4 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2">
+                                    Send Postponement Request Note
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SIMULATION SYSTEM MANAGER -->
+                    <div class="bg-amber-50/50 border border-amber-200/60 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div>
+                            <span class="text-xs font-bold text-amber-800 block">System Simulation Helper</span>
+                            <p class="text-[11px] text-amber-700/80">Skip time forward instantaneously to test deadline triggers or adjustments without waiting weeks.</p>
+                        </div>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button onclick="simulateTime(5)" class="flex-1 sm:flex-none bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 font-medium text-xs py-1.5 px-3 rounded-lg transition-all whitespace-nowrap">
+                                +5 Days Forward
+                            </button>
+                            <button onclick="simulateTime(30)" class="flex-1 sm:flex-none bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 font-medium text-xs py-1.5 px-3 rounded-lg transition-all whitespace-nowrap">
+                                +30 Days (Force Month Over)
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT COLUMN: ACTIVITY FEED TIMELINE -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm max-h-[640px] flex flex-col">
+                        <div class="flex justify-between items-center border-b border-[#f7f4f0] pb-3 mb-4">
+                            <h2 class="text-sm font-bold text-slateCharcoal">Class History & Logs</h2>
+                            <span class="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Live Stream</span>
+                        </div>
+                        
+                        <div id="timeline-container" class="space-y-4 overflow-y-auto pr-1 flex-1 text-xs"></div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDK Modular Scripts Loader Framework imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // EXPLICIT LIVE SECURED FIREBASE PATH KEYS AS PROVIDED
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcCSPehpeVds6YXNXOUWjAsHdlByXcpsY",
+            authDomain: "mentorlog-47ca9.firebaseapp.com",
+            projectId: "mentorlog-47ca9",
+            storageBucket: "mentorlog-47ca9.firebasestorage.app",
+            messagingSenderId: "1412357716",
+            appId: "1:1412357716:web:b5eede3110893e5ecd97c1",
+            measurementId: "G-1J2ZK013HM"
+        };
+
+        // Initialize Firebase Engines
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'mentorlog-47ca9';
+
+        // GLOBAL LITERALS & STRUCTURAL CONSTANTS DEFINITIONS
+        const CLASS_TARGET_MINUTES = 105;
+
+        // EXPANDED GRAPH RELATIONAL PERSISTENCE INSTANCE STRUCTURE
+        let globalDatabase = {
+            sidebarOpen: true,
+            currentView: 'teacher', 
+            activeUserId: null, 
+            activeStudentId: "std_default",
+            users: {},
+            students: {}
+        };
+
+        // UI State Variables
+        let currentAuthMode = 'login';
+        let currentAuthRole = 'teacher';
+        let currentClassMode = 'offline';
+        let dateSearchQuery = null;
+        let isViewingMirroredPartner = false; 
+
+        // Custom Modal Resolution Variable Pool
+        let activeModalResolver = null;
+
+        // Dynamic State Save to Firestore (Synchronized Database)
+        async function save() {
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                // Local fallback save if offline or auth initializing
+                localStorage.setItem('mentorlog_production_state_v2', JSON.stringify(globalDatabase));
+                return;
+            }
+            try {
+                // RULE 1: STRICT PATH CONSTRAINTS FOR GENERAL STORAGE
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'mentorlog_master');
+                await setDoc(docRef, globalDatabase);
+            } catch(e) {
+                console.error("Firestore persistence failed, writing to fallback memory: ", e);
+                localStorage.setItem('mentorlog_production_state_v2', JSON.stringify(globalDatabase));
+            }
+        }
+
+        // HOISTED HELPER FUNCTIONS FOR WORKSPACE STATE RESOLUTIONS
+        function getActiveStudent() {
+            if(!globalDatabase.students[globalDatabase.activeStudentId]) {
+                const availableKeys = Object.keys(globalDatabase.students);
+                if(availableKeys.length > 0) {
+                    globalDatabase.activeStudentId = availableKeys[0];
+                } else {
+                    submitNewStudentDirectlyFallback();
+                }
+            }
+            return globalDatabase.students[globalDatabase.activeStudentId];
+        }
+
+        function resetActiveStudentEngine(preserveOverflow = false) {
+            const student = getActiveStudent();
+            const start = new Date();
+            const target = new Date();
+            target.setMonth(target.getMonth() + 1);
+
+            let rolloverClasses = 0;
+            let rolloverPartialMinutes = 0;
+
+            if (preserveOverflow && student.classesLogged > 12) {
+                rolloverClasses = student.classesLogged - 12;
+                rolloverPartialMinutes = student.runningPartialMinutes;
+            }
+
+            student.startDate = start.toISOString();
+            student.targetEndDate = target.toISOString();
+            student.classesLogged = rolloverClasses;
+            student.runningPartialMinutes = rolloverPartialMinutes;
+            student.totalMinutes = (rolloverClasses * CLASS_TARGET_MINUTES) + rolloverPartialMinutes;
+            student.isPaused = false;
+            student.pauseStartDate = null;
+            student.stickyDismissed = false; 
+            student.cyclePassedSinceDate = null;
+            student.unpaidInvoices = []; // Clear billing stack upon clean next month rotation
+
+            let initialMsg = 'Temporal monitoring limits bounds instantiated.';
+            if (rolloverClasses > 0) {
+                initialMsg += ` Calculated rollover parameters applied: +${rolloverClasses} structural units and +${rolloverPartialMinutes}m preserved to seed this frame.`;
+            }
+
+            student.logs = [{
+                id: Date.now(),
+                date: start.toISOString(),
+                event: 'Cycle Inception Initiated',
+                details: initialMsg,
+                color: 'text-gray-400',
+                badge: 'System'
+            }];
+            save();
+        }
+
+        function submitNewStudentDirectlyFallback() {
+            const cleanId = 'std_fallback_def';
+            globalDatabase.students[cleanId] = {
+                id: cleanId,
+                studentName: "Unlinked Workspace Class",
+                teacherName: "Mentor Profile",
+                institution: "Academics",
+                className: "General Study Pipeline",
+                monthlyPayment: "Negotiated Standard Rate",
+                isActive: true,
+                startDate: new Date().toISOString(),
+                targetEndDate: null,
+                classesLogged: 0,
+                totalMinutes: 0,
+                runningPartialMinutes: 0,
+                isPaused: false,
+                pauseStartDate: null,
+                completedCyclesCount: 0,
+                stickyDismissed: false,
+                cyclePassedSinceDate: null,
+                unpaidInvoices: [],
+                logs: []
+            };
+            globalDatabase.activeStudentId = cleanId;
+            resetActiveStudentEngine(false);
+        }
+
+        // IN-APP DYNAMIC TOAST MANAGER
+        window.launchToast = function(message, type = 'info') {
+            const portal = document.getElementById('toast-wrapper-portal');
+            if(!portal) return;
+
+            const toast = document.createElement('div');
+            toast.className = "p-3 bg-white border rounded-xl shadow-lg flex items-start gap-2.5 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 text-xs";
+            
+            let colorAccent = "border-[#eaddcd] text-slateCharcoal";
+            if(type === 'error') colorAccent = "border-red-200 bg-red-50 text-red-800";
+            if(type === 'success') colorAccent = "border-emerald-200 bg-emerald-50 text-emerald-800";
+            if(type === 'warning') colorAccent = "border-amber-200 bg-amber-50 text-amber-900";
+
+            toast.className += ` ${colorAccent}`;
+            toast.innerHTML = `
+                <div class="flex-1 font-medium">${message}</div>
+                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600 font-bold ml-1">×</button>
+            `;
+
+            portal.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-4px]');
+                setTimeout(() => toast.remove(), 300);
+            }, 4500);
+        }
+
+        // DESIGN DIRECTIVE: AESTHETIC COMPONENT BASED MODALS FOR DIALOGS
+        window.openCustomModal = function(title, desc, isPrompt = false, defaultValue = "") {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-description').innerText = desc;
+            
+            const inputContainer = document.getElementById('modal-input-container');
+            const inputField = document.getElementById('modal-input-field');
+            
+            if (isPrompt) {
+                inputContainer.classList.remove('hidden');
+                inputField.value = defaultValue;
+            } else {
+                inputContainer.classList.add('hidden');
+            }
+
+            document.getElementById('custom-modal-overlay').classList.remove('hidden');
+            
+            return new Promise((resolve) => {
+                activeModalResolver = resolve;
+            });
+        }
+
+        window.closeCustomModal = function(confirmed) {
+            document.getElementById('custom-modal-overlay').classList.add('hidden');
+            if (activeModalResolver) {
+                if (confirmed) {
+                    const inputField = document.getElementById('modal-input-field');
+                    activeModalResolver({ confirmed: true, value: inputField.value.trim() });
+                } else {
+                    activeModalResolver({ confirmed: false, value: "" });
+                }
+                activeModalResolver = null;
+            }
+        }
+
+        window.toggleProfileModal = function(show) {
+            const overlay = document.getElementById('profile-modal-overlay');
+            if(show) {
+                const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+                if(currentUser) {
+                    document.getElementById('prof-username').value = currentUser.name || "";
+                    document.getElementById('prof-img-url').value = currentUser.imgUrl || "";
+                    document.getElementById('prof-contact').value = currentUser.contact || "";
+                    document.getElementById('prof-email').value = currentUser.email || "";
+                    document.getElementById('prof-edu').value = currentUser.education || "";
+                    document.getElementById('prof-inst').value = currentUser.institution || "";
+                    document.getElementById('prof-ssc').value = currentUser.sscGrade || "";
+                    document.getElementById('prof-hsc').value = currentUser.hscGrade || "";
+                }
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        window.saveUserProfile = function() {
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+            if(!currentUser) return;
+
+            const newUsername = document.getElementById('prof-username').value.trim();
+            if(!newUsername) return launchToast("Username is a mandatory operational parameter.", "error");
+
+            currentUser.name = newUsername;
+            currentUser.imgUrl = document.getElementById('prof-img-url').value.trim();
+            currentUser.contact = document.getElementById('prof-contact').value.trim();
+            currentUser.email = document.getElementById('prof-email').value.trim();
+            currentUser.education = document.getElementById('prof-edu').value.trim();
+            currentUser.institution = document.getElementById('prof-inst').value.trim();
+            currentUser.sscGrade = document.getElementById('prof-ssc').value.trim();
+            currentUser.hscGrade = document.getElementById('prof-hsc').value.trim();
+
+            save();
+            toggleProfileModal(false);
+            render();
+            launchToast("User credentials and profiles updated successfully.", "success");
+        }
+
+        // DESTRUCTIVE ACTION: ACCOUNT PERMANENT PURGE
+        window.deleteUserProfile = async function() {
+            toggleProfileModal(false); // Close modal before launching verification sequence
+            const confirmResult = await openCustomModal(
+                "Permanently Delete Account",
+                "WARNING: This will permanently delete your account profile from the cloud, unlink shared portals, and wipe your scheduled classes. This action cannot be undone. Type 'DELETE' to confirm:",
+                true
+            );
+
+            if (confirmResult.confirmed && confirmResult.value === 'DELETE') {
+                const targetUserId = globalDatabase.activeUserId;
+                if (!targetUserId) return;
+
+                // 1. Remove profile record
+                delete globalDatabase.users[targetUserId];
+
+                // 2. Clear related student accounts and logging metrics
+                const studentsToWipe = [];
+                Object.keys(globalDatabase.students).forEach(sId => {
+                    const student = globalDatabase.students[sId];
+                    if (student.teacherName === targetUserId || sId.includes(targetUserId)) {
+                        studentsToWipe.push(sId);
+                    }
+                });
+
+                studentsToWipe.forEach(sId => {
+                    delete globalDatabase.students[sId];
+                });
+
+                // Clear reference state
+                if (studentsToWipe.includes(globalDatabase.activeStudentId)) {
+                    globalDatabase.activeStudentId = "std_default";
+                }
+
+                // 3. Sync database state
+                await save();
+
+                // 4. Force log out device locally
+                globalDatabase.activeUserId = null;
+                isViewingMirroredPartner = false;
+
+                displayAuthScreenOverlay(true);
+                launchToast("Your account and database logs have been permanently deleted.", "success");
+            } else if (confirmResult.confirmed) {
+                launchToast("Deletion canceled. You must type 'DELETE' exactly to confirm.", "warning");
+            }
+        }
+
+        window.setAuthMode = function(mode) {
+            currentAuthMode = mode;
+            const tabLogin = document.getElementById('auth-tab-login');
+            const tabRegister = document.getElementById('auth-tab-register');
+            const nameGroup = document.getElementById('auth-field-name-group');
+            const credLabel = document.getElementById('auth-label-credential');
+            const credInput = document.getElementById('auth-input-credential');
+            const actionBtn = document.getElementById('auth-main-action-btn');
+
+            if (mode === 'login') {
+                tabLogin.className = "flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-white text-slateCharcoal shadow-sm transition-all";
+                tabRegister.className = "flex-1 text-center text-xs font-semibold py-2 rounded-lg text-gray-500 transition-all";
+                nameGroup.classList.add('hidden');
+                credLabel.innerText = "Account Verification Credential Token";
+                credInput.placeholder = "Input verification code (e.g., ML-T-SAMPLE)";
+                actionBtn.innerText = "Validate Secure Token";
+            } else {
+                tabRegister.className = "flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-white text-slateCharcoal shadow-sm transition-all";
+                tabLogin.className = "flex-1 text-center text-xs font-semibold py-2 rounded-lg text-gray-500 transition-all";
+                nameGroup.classList.remove('hidden');
+                credLabel.innerText = "Optional Partner Key / Invite Token";
+                credInput.placeholder = "Paste verification key if linking partners instantly";
+                actionBtn.innerText = "Instantiate Identity Node";
+            }
+        }
+
+        window.setAuthRole = function(role) {
+            currentAuthRole = role;
+            const btnTeacher = document.getElementById('auth-role-teacher');
+            const btnGuardian = document.getElementById('auth-role-guardian');
+
+            if (role === 'teacher') {
+                btnTeacher.className = "py-2.5 text-xs font-bold rounded-xl border-2 border-slateCharcoal bg-slateCharcoal text-white transition-all";
+                btnGuardian.className = "py-2.5 text-xs font-medium rounded-xl border border-[#eaddcd] text-gray-600 bg-[#fbf9f6] hover:bg-gray-50 transition-all";
+            } else {
+                btnGuardian.className = "py-2.5 text-xs font-bold rounded-xl border-2 border-slateCharcoal bg-slateCharcoal text-white transition-all";
+                btnTeacher.className = "py-2.5 text-xs font-medium rounded-xl border border-[#eaddcd] text-gray-600 bg-[#fbf9f6] hover:bg-gray-50 transition-all";
+            }
+        }
+
+        window.processAuthSubmission = function() {
+            const credInput = document.getElementById('auth-input-credential').value.trim();
+            const nameInput = document.getElementById('auth-input-name').value.trim();
+
+            if (currentAuthMode === 'login') {
+                if (!credInput) return launchToast("Credential mapping verification parameters required.", "warning");
+                
+                if (globalDatabase.users[credInput]) {
+                    const matchedUser = globalDatabase.users[credInput];
+                    if (matchedUser.role !== currentAuthRole) {
+                        return launchToast(`Access Denied: Specified key maps to a ${matchedUser.role.toUpperCase()} system node.`, "error");
+                    }
+                    globalDatabase.activeUserId = credInput;
+                    globalDatabase.currentView = matchedUser.role;
+                    save();
+                    displayAuthScreenOverlay(false);
+                    render();
+                    launchToast(`Session verified for node: ${matchedUser.name}`, "success");
+                } else {
+                    launchToast("Identity mismatch: Access token not found in registering database.", "error");
+                }
+            } else {
+                if (!nameInput) return launchToast("Identity parsing error: Username context parameter is mandatory.", "error");
+                
+                const suffix = Math.floor(1000 + Math.random() * 9000);
+                const roleChar = currentAuthRole === 'teacher' ? 'T' : 'G';
+                const generatedId = `ML-${roleChar}-${suffix}`;
+
+                let linkedGuardianId = null;
+
+                if (currentAuthRole === 'teacher' && credInput) {
+                    let matchingGuardFound = null;
+                    Object.keys(globalDatabase.users).forEach(uKey => {
+                        const checkUser = globalDatabase.users[uKey];
+                        if(checkUser.role === 'guardian' && checkUser.generatedInvites && checkUser.generatedInvites.includes(credInput)) {
+                            matchingGuardFound = checkUser;
+                        }
+                    });
+
+                    if(matchingGuardFound) {
+                        linkedGuardianId = matchingGuardFound.id;
+                    } else {
+                        return launchToast("Partner connection registration token validation failed.", "error");
+                    }
+                }
+
+                globalDatabase.users[generatedId] = {
+                    id: generatedId,
+                    name: nameInput,
+                    role: currentAuthRole,
+                    generatedInvites: [],
+                    associatedGuards: linkedGuardianId ? [linkedGuardianId] : [],
+                    mirrorPermissionGranted: false,
+                    imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
+                };
+
+                if (linkedGuardianId) {
+                    if(!globalDatabase.users[linkedGuardianId].associatedGuards) {
+                        globalDatabase.users[linkedGuardianId].associatedGuards = [];
+                    }
+                    globalDatabase.users[linkedGuardianId].associatedGuards.push(generatedId);
+
+                    const structuralTuitionWorkspaceId = 'std_' + Date.now();
+                    globalDatabase.students[structuralTuitionWorkspaceId] = {
+                        id: structuralTuitionWorkspaceId,
+                        studentName: "Linked Ward",
+                        teacherName: nameInput,
+                        institution: "Bridged System Channel",
+                        className: "Primary Tracking Workspace",
+                        monthlyPayment: "Negotiated Terms BDT",
+                        isActive: true,
+                        startDate: new Date().toISOString(),
+                        targetEndDate: null,
+                        classesLogged: 0,
+                        totalMinutes: 0,
+                        runningPartialMinutes: 0,
+                        isPaused: false,
+                        pauseStartDate: null,
+                        completedCyclesCount: 0,
+                        stickyDismissed: false,
+                        cyclePassedSinceDate: null,
+                        unpaidInvoices: [],
+                        logs: [{
+                            id: Date.now(),
+                            date: new Date().toISOString(),
+                            event: "Identity Sync Matrix Established",
+                            details: `Relational data mapping synchronized. Teacher profile [${nameInput}] directly bridged with Guardian profile [${globalDatabase.users[linkedGuardianId].name}].`,
+                            color: "text-emerald-500",
+                            badge: "System"
+                        }]
+                    };
+                    globalDatabase.activeStudentId = structuralTuitionWorkspaceId;
+                }
+
+                globalDatabase.activeUserId = generatedId;
+                globalDatabase.currentView = currentAuthRole;
+                save();
+
+                document.getElementById('auth-input-name').value = '';
+                document.getElementById('auth-input-credential').value = '';
+                
+                displayAuthScreenOverlay(false);
+                render();
+
+                setTimeout(() => {
+                    alert(`IDENTITY NODE INSTANTIATED SUCCESSFULLY\n\nYour permanent login verification passcode is:\n\n${generatedId}\n\nKeep this key safe to access your logs from any device.`);
+                }, 100);
+            }
+        }
+
+        window.quickDemoLogin = function(id, role) {
+            globalDatabase.activeUserId = id;
+            globalDatabase.currentView = role;
+            save();
+            displayAuthScreenOverlay(false);
+            render();
+            launchToast(`Logged in successfully under demo node: ${id}`, "success");
+        }
+
+        // BIND DEMO CLICKS TO PREVENT MODULE SCOPE BLOCK COLD-STARTS
+        document.getElementById('btn-demo-teacher').onclick = () => window.quickDemoLogin('ML-T-SAMPLE', 'teacher');
+        document.getElementById('btn-demo-parent').onclick = () => window.quickDemoLogin('ML-G-SAMPLE', 'guardian');
+
+        window.terminateAuthenticatedSession = function() {
+            openCustomModal("Sign Out", "Are you sure you want to terminate this local device session? Verification keys will be required to restore tracking access.").then((res) => {
+                if (res.confirmed) {
+                    globalDatabase.activeUserId = null;
+                    isViewingMirroredPartner = false;
+                    save();
+                    displayAuthScreenOverlay(true);
+                    launchToast("Account session disconnected safely.", "info");
+                }
+            });
+        }
+
+        window.attemptViewSwitch = function(targetRoleView) {
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+            if (!currentUser) return;
+
+            if (isViewingMirroredPartner) {
+                isViewingMirroredPartner = false;
+                setView(currentUser.role);
+                render();
+                launchToast("Exited peer inspect state. Returned to personal layout.", "info");
+                return;
+            }
+
+            if (currentUser.role !== targetRoleView) {
+                launchToast("Access Denied: View switcher locked to registered privilege role schema.", "error");
+                return;
+            }
+            setView(targetRoleView);
+        }
+
+        window.copyLocalNodeKey = function() {
+            const temp = document.createElement('textarea');
+            temp.value = globalDatabase.activeUserId;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            launchToast("Account node passcode written to clipboard.", "success");
+        }
+
+        window.executeDirectPairing = function() {
+            const input = document.getElementById('input-link-peer-key');
+            const targetKey = input.value.trim();
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+
+            if(!targetKey) return launchToast("Provide a valid registration key to connect profiles.", "warning");
+            
+            const matchedAgent = globalDatabase.users[targetKey];
+            if(!matchedAgent) return launchToast("Cryptographic identifier search failed across registered keys.", "error");
+
+            if(matchedAgent.role === currentUser.role) {
+                return launchToast("Binding error: Multi-node tracking pairing must be asymmetric (Teacher to Guardian).", "error");
+            }
+
+            const tId = currentUser.role === 'teacher' ? currentUser.id : matchedAgent.id;
+            const gId = currentUser.role === 'guardian' ? currentUser.id : matchedAgent.id;
+
+            performLinkExecutionBetweenAgents(tId, gId);
+            input.value = '';
+        }
+
+        window.toggleSidebarLayout = function() {
+            globalDatabase.sidebarOpen = !globalDatabase.sidebarOpen;
+            save();
+            applySidebarState();
+        }
+
+        window.toggleActiveStatus = function() {
+            if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
+            const student = getActiveStudent();
+            if (student.isActive) {
+                openCustomModal("Deactivate Workspace", "Are you sure you want to deactivate live parameter logging for this profile? Current metric calculations will freeze.").then((res) => {
+                    if (res.confirmed) {
+                        student.isActive = false;
+                        student.logs.unshift({
+                            id: Date.now(),
+                            date: new Date().toISOString(),
+                            event: 'Engine Modality Muted',
+                            details: 'Account execution lifecycle state shifted out of active runtime operations stack.',
+                            color: 'text-red-500',
+                            badge: 'System'
+                        });
+                        save();
+                        render();
+                        launchToast("Workspace state operation parameter muted.", "info");
+                    }
+                });
+            } else {
+                openCustomModal("Reactivate Workspace", "Restore full write permissions and active telemetry channels?").then((res) => {
+                    if (res.confirmed) {
+                        student.isActive = true;
+                        student.logs.unshift({
+                            id: Date.now(),
+                            date: new Date().toISOString(),
+                            event: 'Engine Modality Restored',
+                            details: 'Account runtime state returned to active metrics tracking operations.',
+                            color: 'text-emerald-500',
+                            badge: 'System'
+                        });
+                        save();
+                        render();
+                        launchToast("Workspace telemetry operational channels active.", "success");
+                    }
+                });
+            }
+        }
+
+        window.unilateralClearCycle = function() {
+            if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
+            const student = getActiveStudent();
+            if (!student.isActive) return launchToast("Execution Error: Target record frame state is currently muted.", "error");
+            
+            openCustomModal("Unilateral Clear metrics", "Warning: Wiping all current progress to zero and subtracting 1 from Completed Cycles total metric. Are you sure?").then((res) => {
+                if (res.confirmed) {
+                    student.classesLogged = 0;
+                    student.totalMinutes = 0;
+                    student.runningPartialMinutes = 0;
+                    student.cyclePassedSinceDate = null;
+                    
+                    if (student.completedCyclesCount > 0) {
+                        student.completedCyclesCount--;
+                    }
+
+                    student.logs.unshift({
+                        id: Date.now(),
+                        date: new Date().toISOString(),
+                        event: 'Data Array Wiped',
+                        details: 'Instruction call forced absolute clear processing on active numerical log arrays. 1 completed cycle deducted.',
+                        color: 'text-red-400',
+                        badge: 'Wiped'
+                    });
+                    save();
+                    render();
+                    launchToast("Active operational values reset to baseline.", "warning");
+                }
+            });
+        }
+
+        window.toggleStudentForm = function() {
+            document.getElementById('new-student-form').classList.toggle('hidden');
+        }
+
+        window.submitNewStudent = function() {
+            const nameIn = document.getElementById('form-student-name').value.trim();
+            const teacherIn = document.getElementById('form-teacher-name').value.trim() || "Instructor";
+            const instIn = document.getElementById('form-institution').value.trim() || "School";
+            const classIn = document.getElementById('form-class').value.trim() || "General Studies";
+            const payIn = document.getElementById('form-payment').value.trim() || "Negotiated BDT Scale";
+
+            if (!nameIn) return launchToast("Input verification failure: Student name parameter missing.", "error");
+
+            const cleanId = 'std_' + Date.now();
+            globalDatabase.students[cleanId] = {
+                id: cleanId,
+                studentName: nameIn,
+                teacherName: teacherIn,
+                institution: instIn,
+                className: classIn,
+                monthlyPayment: payIn,
+                isActive: true,
+                startDate: new Date().toISOString(),
+                targetEndDate: null,
+                classesLogged: 0,
+                totalMinutes: 0,
+                runningPartialMinutes: 0,
+                isPaused: false,
+                pauseStartDate: null,
+                completedCyclesCount: 0,
+                stickyDismissed: false,
+                cyclePassedSinceDate: null,
+                unpaidInvoices: [],
+                logs: []
+            };
+
+            globalDatabase.activeStudentId = cleanId;
+            resetActiveStudentEngine(false);
+            
+            document.getElementById('form-student-name').value = '';
+            document.getElementById('form-teacher-name').value = '';
+            document.getElementById('form-institution').value = '';
+            document.getElementById('form-class').value = '';
+            document.getElementById('form-payment').value = '';
+            toggleStudentForm();
+            
+            save();
+            render();
+            launchToast(`Tuition workspace initialized for ${nameIn}`, "success");
+        }
+
+        window.handleDateSearch = function() {
+            dateSearchQuery = document.getElementById('search-date-input').value || null;
+            document.getElementById('clear-search-btn').classList.toggle('hidden', !dateSearchQuery);
+            renderTimelineOnly();
+        }
+
+        window.clearDateSearch = function() {
+            document.getElementById('search-date-input').value = '';
+            document.getElementById('clear-search-btn').className = "hidden";
+            dateSearchQuery = null;
+            renderTimelineOnly();
+        }
+
+        window.toggleMirrorPermission = function() {
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+            if(!currentUser) return;
+
+            currentUser.mirrorPermissionGranted = !currentUser.mirrorPermissionGranted;
+            save();
+            render();
+            launchToast(`Counter-agent dashboard inspection rights shifted to: ${currentUser.mirrorPermissionGranted ? 'GRANTED' : 'REVOKED'}.`, "info");
+        }
+
+        window.accessPartnerViewFrame = function() {
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+            if(!currentUser || !currentUser.associatedGuards || currentUser.associatedGuards.length === 0) return;
+
+            const targetPartner = globalDatabase.users[currentUser.associatedGuards[0]];
+            if(!targetPartner || !targetPartner.mirrorPermissionGranted) {
+                return launchToast("Countersign access denied: The target user has not granted inspection permissions.", "error");
+            }
+
+            isViewingMirroredPartner = true;
+            setView(targetPartner.role);
+            render();
+            launchToast(`Peering actively through secure mirrored channel. Inspecting: ${targetPartner.name}`, "success");
+        }
+
+        window.handleLogClass = function(minutesToAdd, isCustom = false, formattedText = "") {
+            if(isViewingMirroredPartner) return launchToast("Cannot submit modifications while in mirrored inspection mode.", "error");
+            const student = getActiveStudent();
+            if (!student.isActive) return launchToast("Write block rejected: Blueprint is explicitly deactivated.", "error");
+            if (student.isPaused) return launchToast("Timeline execution state is currently frozen.", "warning");
+
+            student.totalMinutes += minutesToAdd;
+            let currentPool = student.runningPartialMinutes + minutesToAdd;
+            let fullClassesEarned = Math.floor(currentPool / CLASS_TARGET_MINUTES);
+            student.runningPartialMinutes = currentPool % CLASS_TARGET_MINUTES;
+
+            if (fullClassesEarned > 0) {
+                student.classesLogged += fullClassesEarned;
+                
+                let classIdxNote = `Class ${student.classesLogged} of 12`;
+                let detailsMsg = isCustom ? `Registered Delta block: ${formattedText} [${classIdxNote}].` : `Unit execution structure: 1h 45m (${currentClassMode.toUpperCase()}) [${classIdxNote}].`;
+                
+                if(isCustom && currentPool > minutesToAdd) {
+                    detailsMsg += ` Outstandings resolved to balance standard class increments.`;
+                }
+
+                student.logs.unshift({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    event: `Class Session Recorded`,
+                    details: detailsMsg,
+                    color: 'text-sage',
+                    badge: isCustom ? 'Custom' : currentClassMode,
+                    classIndex: student.classesLogged
+                });
+                launchToast(`Class ${student.classesLogged} logged into tracking sequence.`, "success");
+            } else {
+                let dueDeficit = CLASS_TARGET_MINUTES - student.runningPartialMinutes;
+                student.logs.unshift({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    event: `Partial Discrepancy Logged`,
+                    details: `Appended ${formattedText}. Session saved to historical registers. ${dueDeficit} minutes required to scale up to Class ${student.classesLogged + 1}.`,
+                    color: 'text-indigo-400',
+                    badge: 'Partial'
+                });
+                launchToast("Partial duration block captured and cached.", "info");
+            }
+
+            save();
+            render();
+        }
+
+        window.handleLogCustomTime = function() {
+            const hInput = document.getElementById('custom-hours');
+            const mInput = document.getElementById('custom-minutes');
+            const hours = parseInt(hInput.value) || 0;
+            const minutes = parseInt(mInput.value) || 0;
+            const totalInMinutes = (hours * 60) + minutes;
+
+            if (totalInMinutes <= 0) return launchToast("Input verification failure: Delta value must track above zero.", "warning");
+
+            let formatDisplay = `${hours > 0 ? hours + 'h ' : ''}${minutes}m`;
+            handleLogClass(totalInMinutes, true, formatDisplay);
+            hInput.value = 0;
+            mInput.value = 0;
+        }
+
+        window.handleCancellation = function() {
+            if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
+            const student = getActiveStudent();
+            if (!student.isActive) return;
+            
+            openCustomModal("Reason for Absentee Event", "Please specify the cancellation parameters:", true).then((res) => {
+                if(res.confirmed) {
+                    student.logs.unshift({
+                        id: Date.now(),
+                        date: new Date().toISOString(),
+                        event: `Absentee Notification Filed`,
+                        details: res.value || `Absentee notification entered directly without operational timeline adjustment updates.`,
+                        color: 'text-softRed',
+                        badge: 'Absent'
+                    });
+
+                    save();
+                    render();
+                    launchToast("Absentee event saved.", "info");
+                }
+            });
+        }
+
+        window.handlePostpone = function() {
+            if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
+            const student = getActiveStudent();
+            if (!student.isActive) return;
+            const input = document.getElementById('postpone-note');
+            const reason = input.value.trim();
+
+            if (!reason) return launchToast("Text constraint missing: Explanation argument is required.", "warning");
+
+            student.logs.unshift({
+                id: Date.now(),
+                date: new Date().toISOString(),
+                event: `Reschedule Request Filed`,
+                details: `Variance note argument context: "${reason}"`,
+                color: 'text-honeyAmber',
+                badge: 'Postponed'
+            });
+
+            input.value = '';
+            save();
+            render();
+            launchToast("Postponement notice committed to relational stream.", "success");
+        }
+
+        window.handleTogglePause = function() {
+            if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
+            const student = getActiveStudent();
+            if (!student.isActive) return;
+            const inputElement = document.getElementById('pause-note');
+            const noteText = inputElement.value.trim();
+
+            if (!student.isPaused) {
+                student.isPaused = true;
+                student.pauseStartDate = new Date().toISOString();
+                student.logs.unshift({
+                    id: Date.now(),
+                    date: student.pauseStartDate,
+                    event: `Timeline Frozen`,
+                    details: noteText ? `Context: ${noteText}` : `System scheduling metrics frozen.`,
+                    color: 'text-honeyAmber',
+                    badge: 'Paused'
+                });
+                inputElement.value = '';
+                launchToast("Timeline delta checks halted.", "warning");
+            } else {
+                const now = new Date();
+                const pauseStart = new Date(student.pauseStartDate);
+                const diffTime = Math.abs(now - pauseStart);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                let targetDateObj = new Date(student.targetEndDate);
+                targetDateObj.setDate(targetDateObj.getDate() + diffDays);
+                student.targetEndDate = targetDateObj.toISOString();
+
+                student.isPaused = false;
+                student.pauseStartDate = null;
+                
+                student.logs.unshift({
+                    id: Date.now(),
+                    date: now.toISOString(),
+                    event: `Timeline Resumed`,
+                    details: `Target operational terminal dynamically moved outward by +${diffDays} days to balance system suspension gap.`,
+                    color: 'text-slateCharcoal',
+                    badge: 'Active'
+                });
+                launchToast("Timeline runtime counters unfrozen.", "success");
+            }
+
+            save();
+            render();
+        }
+
+        window.triggerPaymentReset = function(isGuardianOverride = false) {
+            if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
+            const student = getActiveStudent();
+            
+            if (globalDatabase.currentView === 'guardian' && !isGuardianOverride) {
+                return launchToast("Authorization violation: Execution call restricted to Instructor view rights.", "error");
+            }
+
+            if (globalDatabase.currentView === 'guardian' && isGuardianOverride) {
+                const today = new Date();
+                const targetDeadline = new Date(student.targetEndDate);
+                const cycleExpired = student.classesLogged >= 12 || today >= targetDeadline;
+                
+                let daysPast = 0;
+                if (student.cyclePassedSinceDate) {
+                    daysPast = Math.floor((today - new Date(student.cyclePassedSinceDate)) / (1000 * 60 * 60 * 24));
+                }
+                const targetDaysPast = Math.floor((today - targetDeadline) / (1000 * 60 * 60 * 24));
+
+                if (!cycleExpired || (daysPast < 10 && targetDaysPast < 10)) {
+                    return launchToast("Override block engaged: Grace period threshold metric constraint not yet cleared.", "error");
+                }
+            }
+
+            const promptLabel = isGuardianOverride 
+                ? "Execute Guardian Root Administrative Override? This will force clear current tracking logs and start next cycle progress."
+                : "Initialize next monthly billing frame? Extra units beyond the 12-class standard target boundary roll over automatically.";
+
+            openCustomModal("Reconcile Cycle & Advance", promptLabel).then((res) => {
+                if (res.confirmed) {
+                    student.completedCyclesCount += 1; 
+                    const userRoleText = isGuardianOverride ? 'Guardian Root Override' : 'Instructor Core Portal Command';
+                    
+                    resetActiveStudentEngine(true);
+                    
+                    getActiveStudent().logs.unshift({
+                        id: Date.now(),
+                        date: new Date().toISOString(),
+                        event: 'Contract Frame Rotated',
+                        details: `Tracking counters rotated via explicit call from ${userRoleText}. Roll-overs committed successfully.`,
+                        color: 'text-emerald-500',
+                        badge: 'Reset'
+                    });
+                    
+                    save();
+                    render();
+                    launchToast("Telemetry database structural counters shifted forward.", "success");
+                }
+            });
+        }
+
+        window.simulateTime = function(days) {
+            const student = getActiveStudent();
+            let start = new Date(student.startDate);
+            let target = new Date(student.targetEndDate);
+
+            start.setDate(start.getDate() - days);
+            target.setDate(target.getDate() - days);
+
+            student.startDate = start.toISOString();
+            student.targetEndDate = target.toISOString();
+
+            if(student.isPaused && student.pauseStartDate) {
+                let pStart = new Date(student.pauseStartDate);
+                pStart.setDate(pStart.getDate() - days);
+                student.pauseStartDate = pStart.toISOString();
+            }
+
+            if(student.cyclePassedSinceDate) {
+                let pPassed = new Date(student.cyclePassedSinceDate);
+                pPassed.setDate(pPassed.getDate() - days);
+                student.cyclePassedSinceDate = pPassed.toISOString();
+            }
+
+            student.logs.unshift({
+                id: Date.now(),
+                date: new Date().toISOString(),
+                event: `Time Simulation Triggered`,
+                details: `Fast forwarded environment tracking context by +${days} days.`,
+                color: 'text-purple-400',
+                badge: 'Sim'
+            });
+
+            save();
+            render();
+            launchToast("System environment temporal warp committed.", "info");
+        }
+
+        window.performLinkExecutionBetweenAgents = function(teacherId, guardianId) {
+            const teacher = globalDatabase.users[teacherId];
+            const guardian = globalDatabase.users[guardianId];
+
+            if(!teacher.associatedGuards) teacher.associatedGuards = [];
+            if(!guardian.associatedGuards) guardian.associatedGuards = [];
+
+            if(teacher.associatedGuards.includes(guardianId)) {
+                return launchToast("Bridge pathways have already linked these profile entities.", "warning");
+            }
+
+            teacher.associatedGuards.push(guardianId);
+            guardian.associatedGuards.push(teacherId);
+
+            const workspaceId = 'std_bridge_' + Date.now();
+            globalDatabase.students[workspaceId] = {
+                id: workspaceId,
+                studentName: `${guardian.name}'s Class`,
+                teacherName: teacher.name,
+                institution: "Shared Active Tuition",
+                className: "Tuition Contract Tracking",
+                monthlyPayment: "Negotiated Bridge Structure",
+                isActive: true,
+                startDate: new Date().toISOString(),
+                targetEndDate: null,
+                classesLogged: 0,
+                totalMinutes: 0,
+                runningPartialMinutes: 0,
+                isPaused: false,
+                pauseStartDate: null,
+                completedCyclesCount: 0,
+                stickyDismissed: false,
+                cyclePassedSinceDate: null,
+                unpaidInvoices: [],
+                logs: [{
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    event: "Identity Sync Matrix Established",
+                    details: `Shared channel generated. Teacher [${teacher.name}] linked telemetry channels with Guardian [${guardian.name}].`,
+                    color: "text-emerald-500",
+                    badge: "Sync"
+                }]
+            };
+
+            globalDatabase.activeStudentId = workspaceId;
+            save();
+            launchToast("Nodes successfully linked inside graph framework.", "success");
+            render();
+        }
+
+        window.setView = function(view) {
+            const student = getActiveStudent();
+            const slider = document.getElementById('view-slider');
+            const btnTeacher = document.getElementById('btn-view-teacher');
+            const btnGuardian = document.getElementById('btn-view-guardian');
+            const tControls = document.getElementById('teacher-controls');
+            const gControls = document.getElementById('guardian-controls');
+            const stickyWrapper = document.getElementById('guardian-sticky-wrapper');
+
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+            const lockedText = (role) => (currentUser && currentUser.role !== role) && !isViewingMirroredPartner ? ' 🔒' : '';
+            
+            if (btnTeacher) btnTeacher.innerHTML = `Teacher Log${lockedText('teacher')}`;
+            if (btnGuardian) btnGuardian.innerHTML = `Guardian View${lockedText('guardian')}`;
+
+            if (view === 'teacher') {
+                if(slider) { slider.style.left = '4px'; slider.style.width = '124px'; }
+                if(btnTeacher) { btnTeacher.classList.add('text-slateCharcoal'); btnTeacher.classList.remove('text-gray-500'); }
+                if(btnGuardian) { btnGuardian.classList.remove('text-slateCharcoal'); btnGuardian.classList.add('text-gray-500'); }
+                if(tControls) tControls.classList.remove('hidden');
+                if(gControls) gControls.classList.add('hidden');
+                if(stickyWrapper) stickyWrapper.classList.add('hidden'); 
+            } else {
+                if(slider) { slider.style.left = '128px'; slider.style.width = '124px'; }
+                if(btnGuardian) { btnGuardian.classList.add('text-slateCharcoal'); btnGuardian.classList.remove('text-gray-500'); }
+                if(btnTeacher) { btnTeacher.classList.remove('text-slateCharcoal'); btnTeacher.classList.add('text-gray-500'); }
+                if(tControls) tControls.classList.add('hidden');
+                if(gControls) gControls.rmv = gControls.classList.remove('hidden');
+            }
+        }
+
+        window.applySidebarState = function() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleIcon = document.getElementById('toggle-button-icon');
+            
+            if (!sidebar || !toggleIcon) return;
+
+            if (!globalDatabase.sidebarOpen) {
+                sidebar.classList.remove('lg:w-80', 'p-6');
+                sidebar.classList.add('lg:w-0', 'lg:p-0', 'lg:border-r-0');
+                toggleIcon.classList.add('rotate-180');
+            } else {
+                sidebar.classList.add('lg:w-80', 'p-6');
+                sidebar.classList.remove('lg:w-0', 'lg:p-0', 'lg:border-r-0');
+                toggleIcon.classList.remove('rotate-180');
+            }
+        }
+
+        window.setClassMode = function(mode) {
+            currentClassMode = mode;
+            const btnOffline = document.getElementById('mode-offline');
+            const btnOnline = document.getElementById('mode-online');
+            if (mode === 'offline') {
+                btnOffline.className = "flex-1 py-1 text-[10px] font-medium rounded-md bg-white shadow-sm text-slateCharcoal transition-all";
+                btnOnline.className = "flex-1 py-1 text-[10px] font-medium rounded-md text-gray-500 transition-all";
+            } else {
+                btnOnline.className = "flex-1 py-1 text-[10px] font-medium rounded-md bg-white shadow-sm text-slateCharcoal transition-all";
+                btnOffline.className = "flex-1 py-1 text-[10px] font-medium rounded-md text-gray-500 transition-all";
+            }
+        }
+
+        window.handleSwitchStudent = function(id) {
+            globalDatabase.activeStudentId = id;
+            save();
+            render();
+            launchToast("Active contract ledger index shifted.", "info");
+        }
+
+        window.dismissInvoiceCard = function(invoiceId) {
+            const student = getActiveStudent();
+            const cardElement = document.getElementById(`sticky-note-${invoiceId}`);
+            if (cardElement) {
+                cardElement.classList.add('fall-animation');
+            }
+            
+            setTimeout(() => {
+                const inv = student.unpaidInvoices.find(i => i.id === invoiceId);
+                if (inv) {
+                    inv.dismissed = true;
+                }
+                save();
+                render();
+                launchToast("Tuition invoice cleared from layout.", "success");
+            }, 700);
+        }
+
+        function renderStickyNotesStack() {
+            const wrapper = document.getElementById('guardian-sticky-wrapper');
+            if (!wrapper) return;
+            
+            const student = getActiveStudent();
+            const activeInvoices = (student.unpaidInvoices || []).filter(inv => !inv.dismissed);
+            
+            if (activeInvoices.length > 0 && globalDatabase.currentView === 'guardian' && student.isActive) {
+                wrapper.classList.remove('hidden');
+                wrapper.innerHTML = ''; // Fresh DOM repaint
+                
+                activeInvoices.forEach((inv, index) => {
+                    const isTop = index === activeInvoices.length - 1;
+                    const offsetRotation = (index % 3 - 1) * 3; 
+                    const offsetTranslateY = index * 12; 
+                    const offsetTranslateX = (index % 2 === 0 ? 4 : -4);
+                    const zIndex = 50 + index;
+                    
+                    const note = document.createElement('div');
+                    note.id = `sticky-note-${inv.id}`;
+                    note.className = "absolute top-0 right-0 hanging-sticky-note cursor-pointer w-44 bg-amber-100 border border-amber-200 p-4 pt-6 rounded-b-md text-slateCharcoal text-xs flex flex-col items-center text-center gap-1.5 transition-all select-none hover:bg-amber-50";
+                    note.style.transform = `rotate(${offsetRotation}deg) translateY(${offsetTranslateY}px) translateX(${offsetTranslateX}px)`;
+                    note.style.zIndex = zIndex;
+                    note.style.pointerEvents = isTop ? 'auto' : 'none'; 
+                    
+                    note.innerHTML = `
+                        <div class="font-bold text-[10px] tracking-wider uppercase text-amber-800">${inv.title}</div>
+                        <div class="w-6 h-0.5 bg-amber-300 my-0.5"></div>
+                        <p class="text-[11px] text-amber-900 font-medium leading-tight">Overdue month payment due.</p>
+                        <span class="mt-1 inline-block bg-amber-800 text-white font-bold text-[9px] px-2 py-0.5 rounded-full shadow-sm tracking-wide">ACCOUNT DUE</span>
+                        ${isTop ? '<span class="text-[9px] text-gray-400 mt-2 block border-t border-amber-200/60 pt-1.5 w-full">Tap / Touch to dismiss</span>' : ''}
+                    `;
+                    
+                    if (isTop) {
+                        note.onclick = (e) => {
+                            e.stopPropagation();
+                            window.dismissInvoiceCard(inv.id);
+                        };
+                    }
+                    wrapper.appendChild(note);
+                });
+            } else {
+                wrapper.classList.add('hidden');
+                wrapper.innerHTML = '';
+            }
+        }
+
+        window.render = function() {
+            const student = getActiveStudent();
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+
+            if (currentUser) {
+                const profileTagNameEl = document.getElementById('user-profile-tag-name');
+                const profileTagRoleEl = document.getElementById('user-profile-tag-role');
+                const displayNodeKeyEl = document.getElementById('txt-display-node-key');
+                const avatarFooterEl = document.getElementById('avatar-footer-preview');
+
+                if (profileTagNameEl) profileTagNameEl.innerText = currentUser.name;
+                if (profileTagRoleEl) profileTagRoleEl.innerText = `PRIVILEGE: ${currentUser.role.toUpperCase()}`;
+                if (displayNodeKeyEl) displayNodeKeyEl.innerText = currentUser.id;
+
+                if (avatarFooterEl) {
+                    if (currentUser.imgUrl) {
+                        avatarFooterEl.src = currentUser.imgUrl;
+                        avatarFooterEl.classList.remove('hidden');
+                    } else {
+                        avatarFooterEl.classList.add('hidden');
+                    }
+                }
+            }
+
+            const partnerCardList = document.getElementById('partner-card-list');
+            if(partnerCardList && currentUser) {
+                partnerCardList.innerHTML = '';
+                const activePartners = currentUser.associatedGuards || [];
+                
+                if (activePartners.length === 0) {
+                    partnerCardList.innerHTML = `<div class="text-[11px] text-gray-400 italic font-sans">No connected peer profiles linked to this workspace. Use the pairing section below.</div>`;
+                } else {
+                    activePartners.forEach(pId => {
+                        const peer = globalDatabase.users[pId];
+                        if (peer) {
+                            if (currentUser.role === 'teacher' && peer.role === 'teacher') return;
+
+                            const pCard = document.createElement('div');
+                            pCard.className = "bg-[#fbf9f6] border border-[#eaddcd] rounded-lg p-2.5 space-y-1.5";
+                            
+                            let optionalFieldsHtml = '';
+                            if (peer.education) optionalFieldsHtml += `<div class="text-gray-500 font-bold">Edu: <span class="font-sans font-normal text-slateCharcoal">${peer.education}</span></div>`;
+                            if (peer.institution) optionalFieldsHtml += `<div class="text-gray-500 font-bold">Inst: <span class="font-sans font-normal text-slateCharcoal">${peer.institution}</span></div>`;
+                            if (peer.sscGrade) optionalFieldsHtml += `<div class="text-gray-500 font-bold">SSC: <span class="font-sans font-normal text-slateCharcoal">${peer.sscGrade}</span></div>`;
+                            if (peer.hscGrade) optionalFieldsHtml += `<div class="text-gray-500 font-bold">HSC: <span class="font-sans font-normal text-slateCharcoal">${peer.hscGrade}</span></div>`;
+                            if (peer.contact) optionalFieldsHtml += `<div class="text-gray-500 font-bold">Contact: <span class="font-sans font-normal text-slateCharcoal">${peer.contact}</span></div>`;
+                            if (peer.email) optionalFieldsHtml += `<div class="text-gray-500 font-bold">Email: <span class="font-sans font-normal text-slateCharcoal text-[10px] break-all">${peer.email}</span></div>`;
+
+                            pCard.innerHTML = `
+                                <div class="flex items-center gap-2">
+                                    <img src="${peer.imgUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'}" class="w-8 h-8 rounded-full object-cover border border-[#eaddcd]">
+                                    <div class="truncate">
+                                        <div class="font-bold text-xs text-slateCharcoal truncate">${peer.name}</div>
+                                        <div class="text-[9px] uppercase tracking-wider text-gray-400 font-bold font-sans">${peer.role.toUpperCase()}</div>
+                                    </div>
+                                </div>
+                                <div class="text-[10px] border-t border-gray-100 pt-1.5 space-y-0.5 leading-tight font-sans">
+                                    ${optionalFieldsHtml || '<span class="text-gray-400 italic">No optional profiles supplied.</span>'}
+                                </div>
+                            `;
+                            partnerCardList.appendChild(pCard);
+                        }
+                    });
+                }
+            }
+
+            const mirrorBox = document.getElementById('mirror-access-box');
+            if (mirrorBox && currentUser && currentUser.associatedGuards && currentUser.associatedGuards.length > 0) {
+                mirrorBox.classList.remove('hidden');
+                
+                const partnerUser = globalDatabase.users[currentUser.associatedGuards[0]];
+                const statusBadge = document.getElementById('txt-permission-status');
+                const togglePermBtn = document.getElementById('btn-toggle-mirror-permission');
+                const accessBtn = document.getElementById('btn-access-partner-view');
+
+                if (togglePermBtn) togglePermBtn.innerText = currentUser.mirrorPermissionGranted ? "Revoke Visibility" : "Grant Peer Visibility";
+                
+                if (partnerUser) {
+                    if (partnerUser.mirrorPermissionGranted) {
+                        if (statusBadge) {
+                            statusBadge.innerText = `${partnerUser.name} granted access`;
+                            statusBadge.className = "text-[10px] bg-emerald-50 text-sage px-2 py-0.5 rounded-full font-bold";
+                        }
+                        if (accessBtn) {
+                            accessBtn.removeAttribute('disabled');
+                            accessBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        }
+                    } else {
+                        if (statusBadge) {
+                            statusBadge.innerText = "Partner denied access";
+                            statusBadge.className = "text-[10px] bg-red-50 text-softRed px-2 py-0.5 rounded-full font-bold";
+                        }
+                        if (accessBtn) {
+                            accessBtn.setAttribute('disabled', 'true');
+                            accessBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        }
+                    }
+                }
+            } else if (mirrorBox) {
+                mirrorBox.classList.add('hidden');
+            }
+
+            const activeTuitionPanel = document.getElementById('new-tuition-block-container');
+            const pipelineSelector = document.getElementById('student-selector-section');
+            if (isViewingMirroredPartner) {
+                if (activeTuitionPanel) activeTuitionPanel.classList.add('hidden');
+                if (pipelineSelector) pipelineSelector.classList.add('hidden');
+            } else {
+                if (activeTuitionPanel && currentUser && currentUser.role === 'teacher') activeTuitionPanel.classList.remove('hidden');
+                else if (activeTuitionPanel) activeTuitionPanel.classList.add('hidden');
+                if (pipelineSelector) pipelineSelector.classList.remove('hidden');
+            }
+
+            const listContainer = document.getElementById('student-list-container');
+            if(listContainer) {
+                listContainer.innerHTML = '';
+                Object.keys(globalDatabase.students).forEach(key => {
+                    const s = globalDatabase.students[key];
+                    const isSelected = key === globalDatabase.activeStudentId;
+                    const activeStateText = s.isActive ? "" : " (Muted)";
+                    
+                    const btn = document.createElement('button');
+                    btn.onclick = () => handleSwitchStudent(key);
+                    btn.className = `w-full text-left text-xs px-3 py-2 rounded-lg font-medium transition-all flex items-center justify-between ${
+                        isSelected 
+                            ? 'bg-white border border-[#eaddcd] text-slateCharcoal shadow-sm font-semibold' 
+                            : 'text-gray-600 hover:bg-[#eaddcd]/40'
+                    }`;
+                    btn.innerHTML = `
+                        <span class="truncate">${s.studentName}${activeStateText}</span>
+                        <span class="text-[9px] opacity-60 shrink-0 font-bold ml-1">${s.className}</span>
+                    `;
+                    listContainer.appendChild(btn);
+                });
+            }
+
+            const headerStudentTargetEl = document.getElementById('header-student-target');
+            const headerProfileSubtextEl = document.getElementById('header-profile-subtext');
+            const cycleBadgeCountEl = document.getElementById('cycle-badge-count');
+            const metricClassesEl = document.getElementById('metric-classes');
+            const metricHoursEl = document.getElementById('metric-hours');
+            const progressBarEl = document.getElementById('progress-bar');
+            const dateStartEl = document.getElementById('date-start');
+            const dateTargetEl = document.getElementById('date-target');
+
+            if (headerStudentTargetEl) headerStudentTargetEl.innerText = `for ${student.studentName}`;
+            if (headerProfileSubtextEl) headerProfileSubtextEl.innerText = `${student.institution} — ${student.className} • Assigned Terms Target: ${student.monthlyPayment}`;
+
+            if (cycleBadgeCountEl) cycleBadgeCountEl.innerText = `Reconciled Cycles: ${student.completedCyclesCount}`;
+            if (metricClassesEl) metricClassesEl.innerText = `${student.classesLogged} / 12`;
+            
+            const hoursCalculated = (student.totalMinutes / 60).toFixed(2);
+            if (metricHoursEl) metricHoursEl.innerText = `${hoursCalculated} / 21`;
+
+            const percentage = Math.min((student.classesLogged / 12) * 100, 100);
+            if (progressBarEl) progressBarEl.style.width = `${percentage}%`;
+
+            const options = { month: 'short', day: 'numeric', year: 'numeric' };
+            if (dateStartEl) dateStartEl.innerText = new Date(student.startDate).toLocaleDateString(undefined, options);
+            if (dateTargetEl) dateTargetEl.innerText = new Date(student.targetEndDate).toLocaleDateString(undefined, options);
+
+            const dueWidget = document.getElementById('due-widget');
+            if (dueWidget) {
+                if (student.runningPartialMinutes > 0) {
+                    let minutesDue = CLASS_TARGET_MINUTES - student.runningPartialMinutes;
+                    let dueH = Math.floor(minutesDue / 60);
+                    let dueM = minutesDue % 60;
+                    let displayDueText = `${dueH > 0 ? dueH + 'h ' : ''}${dueM}m deficit`;
+
+                    let curH = Math.floor(student.runningPartialMinutes / 60);
+                    let curM = student.runningPartialMinutes % 60;
+                    let displayCurText = `${curH > 0 ? curH + 'h ' : ''}${curM}m accumulated`;
+
+                    dueWidget.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="flex h-2 w-2 relative">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                            </span>
+                            <span>Variable Discrepancy Cache: <strong>${displayCurText}</strong> profiling toward Class Invariant Unit ${student.classesLogged + 1}.</span>
+                        </div>
+                        <span class="bg-orange-200/60 font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wide border border-orange-300/40">${displayDueText}</span>
+                    `;
+                    dueWidget.classList.remove('hidden');
+                } else {
+                    dueWidget.classList.add('hidden');
+                }
+            }
+
+            const badge = document.getElementById('status-badge');
+            
+            if (badge) {
+                if (!student.isActive) {
+                    badge.innerText = "Muted Parameters";
+                    badge.className = "absolute top-4 right-4 text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-red-100 text-red-700 border border-red-300 cursor-pointer select-none";
+                } else if (student.isPaused) {
+                    badge.innerText = "Timeline Frozen";
+                    badge.className = "absolute top-4 right-4 text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-amber-50 text-honeyAmber border border-honeyAmber/20 cursor-pointer select-none";
+                } else {
+                    badge.innerText = "Active Runtime";
+                    badge.className = "absolute top-4 right-4 text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full bg-emerald-50 text-sage border border-sage/20 cursor-pointer select-none";
+                }
+            }
+
+            const today = new Date();
+            const targetDeadline = new Date(student.targetEndDate);
+            const classesThresholdMet = student.classesLogged >= 12;
+            const timeThresholdMet = today >= targetDeadline;
+            const cycleExpired = (classesThresholdMet || timeThresholdMet) && !student.isPaused;
+
+            if (cycleExpired) {
+                if (!student.cyclePassedSinceDate) {
+                    student.cyclePassedSinceDate = new Date().toISOString();
+                    save();
+                }
+            } else {
+                student.cyclePassedSinceDate = null;
+                save();
+            }
+
+            // AUTO-GENERATE UNPAID BILLING INVOICES DYNAMICALLY IF OUTSTANDING
+            if (cycleExpired && student.isActive) {
+                if (!student.unpaidInvoices) student.unpaidInvoices = [];
+                
+                const outstandingTotal = Math.max(1, student.completedCyclesCount);
+                while (student.unpaidInvoices.filter(i => !i.dismissed).length < outstandingTotal) {
+                    const currentOutstandingCount = student.unpaidInvoices.filter(i => !i.dismissed).length;
+                    student.unpaidInvoices.push({
+                        id: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                        title: `Month ${currentOutstandingCount + 1} Invoice`,
+                        dismissed: false
+                    });
+                }
+            }
+
+            renderStickyNotesStack();
+
+            const guardianOverrideBox = document.getElementById('guardian-overdue-override-box');
+            if (cycleExpired && student.cyclePassedSinceDate && student.isActive) {
+                const passedTimeStamp = new Date(student.cyclePassedSinceDate);
+                const totalDaysPastLimit = Math.floor((today - passedTimeStamp) / (1000 * 60 * 60 * 24));
+                const targetDaysPast = Math.floor((today - targetDeadline) / (1000 * 60 * 60 * 24));
+
+                if (totalDaysPastLimit >= 10 || targetDaysPast >= 10) {
+                    if(guardianOverrideBox) guardianOverrideBox.classList.remove('hidden');
+                } else {
+                    if(guardianOverrideBox) guardianOverrideBox.classList.add('hidden');
+                }
+            } else {
+                if(guardianOverrideBox) guardianOverrideBox.classList.add('hidden');
+            }
+
+            const alertBox = document.getElementById('payment-alert');
+            if (alertBox) {
+                if (cycleExpired && student.isActive) {
+                    let reasonTitle = classesThresholdMet ? "Target Limit Met: 12 Classes Logged" : "Terminal Threshold Crossed: Monthly Cap Met";
+                    let reasonDesc = classesThresholdMet ? "21 core metrics units completely accounted for." : "The scheduling window allocation frame has lapsed. Reconciliation required.";
+                    
+                    alertBox.innerHTML = `
+                        <div class="bg-[#faf1ed] border-2 border-terracotta/40 rounded-2xl p-6 text-slateCharcoal shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="p-3 bg-terracotta text-white rounded-xl shadow-sm">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-base font-bold text-slateCharcoal">${reasonTitle}</h3>
+                                    <p class="text-xs text-gray-600 mt-1">${reasonDesc}</p>
+                                    <div class="mt-4 pt-4 border-t border-terracotta/10 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                                        <div>
+                                            <span class="block text-[10px] uppercase font-bold tracking-wider text-gray-400">Yield Aggregation</span>
+                                            <span class="text-sm font-semibold text-terracotta">${student.classesLogged} Units (${hoursCalculated} Hours)</span>
+                                        </div>
+                                        ${globalDatabase.currentView === 'teacher' ? `
+                                            <button onclick="triggerPaymentReset(false)" class="bg-terracotta hover:bg-terracottaHover text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all whitespace-nowrap">
+                                                Execute Rotation & Force Clear
+                                            </button>
+                                        ` : `
+                                            <span class="bg-white border border-terracotta/20 text-terracotta text-xs font-medium px-4 py-2.5 rounded-xl text-center">
+                                                Awaiting Mentor Reconciliation
+                                            </span>
+                                        `}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    alertBox.classList.remove('hidden');
+                } else {
+                    alertBox.classList.add('hidden');
+                }
+            }
+
+            renderTimelineOnly();
+            setView(globalDatabase.currentView || 'teacher');
+        }
+
+        window.renderTimelineOnly = function() {
+            const student = getActiveStudent();
+            const timelineContainer = document.getElementById('timeline-container');
+            if(!timelineContainer) return;
+            timelineContainer.innerHTML = '';
+
+            let logsToRender = student.logs || [];
+            if (dateSearchQuery) {
+                logsToRender = logsToRender.filter(log => {
+                    const normalizedLogDate = new Date(log.date).toISOString().split('T')[0];
+                    return normalizedLogDate === dateSearchQuery;
+                });
+            }
+
+            if (logsToRender.length === 0) {
+                timelineContainer.innerHTML = `<p class="text-center text-gray-400 py-8 text-xs">No records correspond to active date selection criteria.</p>`;
+            } else {
+                logsToRender.forEach(log => {
+                    const rawDateObj = new Date(log.date);
+                    const logDateStr = rawDateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+                    const logTimeStr = rawDateObj.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
+                    
+                    let badgeColor = "bg-gray-100 text-gray-600";
+                    if (log.badge === 'online') badgeColor = "bg-blue-50 text-blue-600 border border-blue-100";
+                    if (log.badge === 'offline') badgeColor = "bg-emerald-50 text-sage border border-emerald-100";
+                    if (log.badge === 'Absent') badgeColor = "bg-red-50 text-softRed border border-red-100";
+                    if (log.badge === 'Paused') badgeColor = "bg-amber-50 text-honeyAmber border border-amber-100";
+                    if (log.badge === 'Postponed') badgeColor = "bg-amber-100 text-amber-800 border border-amber-300 font-bold animate-pulse";
+                    if (log.badge === 'Sim') badgeColor = "bg-purple-50 text-purple-600 border border-purple-100";
+                    if (log.badge === 'Custom') badgeColor = "bg-orange-50 text-orange-700 border border-orange-200";
+                    if (log.badge === 'Partial') badgeColor = "bg-indigo-50 text-indigo-600 border border-indigo-100";
+                    if (log.badge === 'Reset') badgeColor = "bg-emerald-600 text-white font-bold";
+                    if (log.badge === 'Wiped') badgeColor = "bg-red-600 text-white font-bold";
+                    if (log.badge === 'System') badgeColor = "bg-slate-700 text-white font-bold";
+
+                    const item = document.createElement('div');
+                    item.className = "p-3 bg-[#fbf9f6] rounded-xl border border-[#f0ece6] space-y-1 relative";
+                    item.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <span class="font-semibold text-slateCharcoal text-xs">${log.event}</span>
+                            <span class="text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded uppercase ${badgeColor}">${log.badge || 'info'}</span>
+                        </div>
+                        <p class="text-gray-500 text-[11px] leading-relaxed">${log.details}</p>
+                        <div class="flex items-center justify-between border-t border-gray-100 pt-1.5 mt-1">
+                            <span class="text-[9px] text-gray-400 font-medium">${logDateStr} @ ${logTimeStr}</span>
+                            ${log.classIndex ? `<span class="bg-[#f0ece6] text-slateCharcoal text-[10px] px-2 py-0.5 rounded font-bold">Class Unit #${log.classIndex} of 12</span>` : ''}
+                        </div>
+                    `;
+                    timelineContainer.appendChild(item);
+                });
+            }
+        }
+
+        window.displayAuthScreenOverlay = function(show) {
+            const overlay = document.getElementById('auth-screen-overlay');
+            if(show) {
+                overlay.classList.remove('hidden');
+                setAuthMode(currentAuthMode);
+                setAuthRole(currentAuthRole);
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // Live Real-Time Handshake Engine
+        const initAuth = async () => {
+            try {
+                // RULE 3: AUTHENTICATE FIRST
+                await signInAnonymously(auth);
+                const badge = document.getElementById('db-status-badge');
+                if(badge) {
+                    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Live Cloud Synced`;
+                    badge.className = "inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-sage rounded-full text-[10px] font-bold mb-3 uppercase tracking-wider";
+                }
+            } catch(e) {
+                console.warn("Cloud connection error, running in Local Session mode: ", e);
+                const badge = document.getElementById('db-status-badge');
+                if(badge) {
+                    badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span> Local Session Sandbox`;
+                    badge.className = "inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-softRed rounded-full text-[10px] font-bold mb-3 uppercase tracking-wider";
+                }
+            }
+        };
+
+        // Real-Time Firebase Listener
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return;
+            
+            // RULE 1: Strict Document Path for public data
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'mentorlog_master');
+            
+            // RULE 2: Single Document Listener, no complex queries
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const incomingDb = docSnap.data();
+                    
+                    // Maintain current user perspective, but sync metrics seamlessly
+                    const currentLocalUser = globalDatabase.activeUserId;
+                    globalDatabase = { ...globalDatabase, ...incomingDb };
+                    globalDatabase.activeUserId = currentLocalUser;
+                    
+                    render();
+                } else {
+                    // Fallback to local sandbox if no cloud structure exists yet
+                    const cachedLocal = localStorage.getItem('mentorlog_production_state_v2');
+                    if (cachedLocal) {
+                        globalDatabase = JSON.parse(cachedLocal);
+                    } else {
+                        submitNewStudentDirectlyFallback();
+                    }
+                    render();
+                }
+            }, (error) => {
+                console.error("Firestore listening pipeline error: ", error);
+            });
+        });
+
+        // Initialize App Context
+        window.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+            
+            // Fallback load checks
+            const cachedLocal = localStorage.getItem('mentorlog_production_state_v2');
+            if (cachedLocal) {
+                globalDatabase = JSON.parse(cachedLocal);
+            } else {
+                submitNewStudentDirectlyFallback();
+            }
+
+            if (!globalDatabase.activeUserId) {
+                displayAuthScreenOverlay
