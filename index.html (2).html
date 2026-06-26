@@ -52,6 +52,10 @@
             30% { transform: translateY(-12px) rotate(-1deg); opacity: 1; }
             100% { transform: translateY(120vh) rotate(12deg); opacity: 0; }
         }
+        @keyframes shimmer-line {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
         .hanging-sticky-note {
             transform-origin: top center;
             animation: swing-physics 5s ease-in-out infinite;
@@ -74,9 +78,38 @@
             animation: drop-away 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
             pointer-events: none;
         }
+        .shimmer-progress {
+            animation: shimmer-line 2.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen relative flex flex-col overflow-x-hidden select-none">
+
+    <!-- PREMIUM AESTHETIC INTRO ANIMATION SPLASH COVER -->
+    <div id="intro-animation-screen" class="fixed inset-0 bg-[#2d3748] z-[200] flex flex-col items-center justify-center transition-all duration-1000 ease-out">
+        <div class="text-center space-y-5 transform scale-95 animate-[pulse_3s_infinite] transition-transform duration-1000">
+            <!-- Modern mechanical geometric clock/handshake icon -->
+            <div class="inline-flex items-center justify-center w-20 h-24 text-[#c96f53] mb-2 relative">
+                <svg class="w-16 h-16 animate-[spin_12s_linear_infinite]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-dasharray="4 2"></circle>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2"></path>
+                </svg>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-6 h-6 border-2 border-[#8fa89b] rounded-full animate-ping opacity-60"></div>
+                </div>
+            </div>
+            
+            <div class="space-y-1">
+                <h1 class="text-3xl font-bold tracking-widest text-[#fbf9f6] uppercase">MentorLog</h1>
+                <p class="text-[10px] uppercase tracking-[0.2em] text-[#8fa89b] font-semibold">Tuition Sync Engine</p>
+            </div>
+            
+            <!-- Real-time loading progress slide bar -->
+            <div class="w-40 h-0.5 bg-[#fbf9f6]/10 mx-auto rounded-full overflow-hidden relative">
+                <div class="h-full bg-[#c96f53] rounded-full shimmer-progress"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- IN-APP TOAST NOTIFICATION PORTAL -->
     <div id="toast-wrapper-portal" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none max-w-sm w-full"></div>
@@ -99,7 +132,24 @@
     <!-- PROFILE MANAGEMENT DIALOG PANEL -->
     <div id="profile-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[80] flex items-center justify-center p-4 hidden">
         <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto space-y-4">
-            <h3 class="text-xs font-bold text-slateCharcoal uppercase tracking-wider border-b border-gray-100 pb-2">Configure Profile Details</h3>
+            <h3 class="text-xs font-bold text-slateCharcoal uppercase tracking-wider border-b border-gray-100 pb-2">Configure Profile & Tuition Settings</h3>
+            
+            <!-- Custom Default Class Duration Segment (Teacher-Only View) -->
+            <div id="teacher-profile-duration-config" class="bg-orange-50/40 border border-orange-100 p-4 rounded-xl space-y-3">
+                <label class="block text-[10px] font-bold text-slateCharcoal uppercase tracking-wider">Default Single Class Duration</label>
+                <p class="text-[11px] text-gray-500 leading-tight">Define the standard length of your classes. All standard logging metrics and billing cycles will adjust dynamically to this duration.</p>
+                <div class="flex gap-3 text-xs">
+                    <div class="flex-1">
+                        <label class="block text-[9px] uppercase font-bold text-gray-400 mb-0.5">Hours</label>
+                        <input type="number" id="prof-class-hours" min="0" max="12" class="w-full px-2.5 py-1.5 bg-white border border-[#eaddcd] rounded-lg outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-[9px] uppercase font-bold text-gray-400 mb-0.5">Minutes</label>
+                        <input type="number" id="prof-class-minutes" min="0" max="59" class="w-full px-2.5 py-1.5 bg-white border border-[#eaddcd] rounded-lg outline-none">
+                    </div>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div class="sm:col-span-2">
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Avatar Image URL (Optional)</label>
@@ -268,8 +318,8 @@
                         </div>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Remuneration Rate</label>
-                        <input type="text" id="form-payment" placeholder="e.g., 15,000 BDT / Month" class="w-full px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
+                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-1">Monthly Remuneration / Fees (BDT)</label>
+                        <input type="number" id="form-payment" placeholder="e.g. 15000" class="w-full px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
                     </div>
                     <button onclick="submitNewStudent()" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-semibold text-[11px] py-2 rounded-md transition-all shadow-sm">
                         Instantiate Student
@@ -417,7 +467,7 @@
                             </div>
                             <div>
                                 <div class="text-3xl font-bold text-slateCharcoal" id="metric-hours">0.00 / 21</div>
-                                <div class="text-xs text-gray-500 mt-1">Total Hours Taught</div>
+                                <div class="text-xs text-gray-500 mt-1" id="metric-hours-label">Total Hours Taught</div>
                             </div>
                         </div>
 
@@ -466,14 +516,14 @@
                         <!-- STANDARD LOG MODALITY FRAME -->
                         <div id="panel-standard" class="space-y-3">
                             <p class="text-[11px] text-gray-400">Log a full scheduled class session lasting exactly **1 Hour 45 Minutes** (105 minutes).</p>
-                            <button onclick="handleLogClass(105)" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-medium text-sm py-3 px-6 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2">
+                            <button id="btn-log-standard-class" onclick="handleLogClass(null)" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-medium text-sm py-3 px-6 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2">
                                 Log Full Class (1h 45m)
                             </button>
                         </div>
 
                         <!-- PARTIAL LOG MODALITY FRAME -->
                         <div id="panel-partial" class="hidden space-y-3">
-                            <p class="text-[11px] text-gray-400">Register shorter or custom class durations. This accumulates automatically toward the 1h 45m total.</p>
+                            <p class="text-[11px] text-gray-400">Register shorter or custom class durations. This accumulates automatically toward standard class unit counts.</p>
                             <div class="flex gap-3 items-end">
                                 <div class="flex-1">
                                     <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Hours</label>
@@ -539,7 +589,7 @@
                             <label class="block text-xs font-semibold text-gray-600">Postpone or Reschedule Class Session</label>
                             <div class="space-y-2">
                                 <input type="text" id="postpone-note" placeholder="Reason (e.g., Midterm Exams)" class="w-full px-3 py-2.5 text-xs bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none">
-                                <button onclick="handlePostpone()" class="w-full bg-slateCharcoal hover:bg-gray-700 text-white font-medium text-xs py-3 px-4 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2">
+                                <button onclick="handlePostpone()" class="w-full bg-slateCharcoal hover:bg-gray-700 text-white font-medium text-xs py-3 px-4 rounded-xl shadow-sm flex justify-center items-center gap-2">
                                     Send Postponement Request Note
                                 </button>
                             </div>
@@ -605,7 +655,7 @@
         const appId = 'mentorlog-47ca9';
 
         // GLOBAL LITERALS & STRUCTURAL CONSTANTS DEFINITIONS
-        const CLASS_TARGET_MINUTES = 105;
+        let CLASS_TARGET_MINUTES = 105; // Standard default base fallback: 1h 45m
 
         // EXPANDED GRAPH RELATIONAL PERSISTENCE INSTANCE STRUCTURE
         let globalDatabase = {
@@ -627,15 +677,77 @@
         // Custom Modal Resolution Variable Pool
         let activeModalResolver = null;
 
+        // BROWSER AUDIO API AUDIO CHIME SYNTHESIZERS (Completely Client-Side and Reliable)
+        let audioContext = null;
+
+        function playSoundChime(soundType) {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                // Allow audio output if suspended by browser security configurations
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+
+                if (soundType === 'bell') {
+                    // Two-tone clean physical brass bell ding-dong chime
+                    const t1 = audioContext.currentTime;
+                    
+                    // High DING
+                    const osc1 = audioContext.createOscillator();
+                    const gain1 = audioContext.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(880, t1); // A5 frequency
+                    osc1.frequency.exponentialRampToValueAtTime(880, t1 + 0.8);
+                    gain1.gain.setValueAtTime(0.35, t1);
+                    gain1.gain.exponentialRampToValueAtTime(0.001, t1 + 0.8);
+                    osc1.connect(gain1);
+                    gain1.connect(audioContext.destination);
+                    osc1.start(t1);
+                    osc1.stop(t1 + 0.8);
+
+                    // Low DONG
+                    const t2 = t1 + 0.28;
+                    const osc2 = audioContext.createOscillator();
+                    const gain2 = audioContext.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(698.46, t2); // F5 frequency
+                    osc2.frequency.exponentialRampToValueAtTime(698.46, t2 + 1.2);
+                    gain2.gain.setValueAtTime(0.3, t2);
+                    gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 1.2);
+                    osc2.connect(gain2);
+                    gain2.connect(audioContext.destination);
+                    osc2.start(t2);
+                    osc2.stop(t2 + 1.2);
+
+                } else if (soundType === 'click') {
+                    // Quick physical mechanical tactile feedback click
+                    const t = audioContext.currentTime;
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1500, t);
+                    osc.frequency.exponentialRampToValueAtTime(80, t + 0.05);
+                    gain.gain.setValueAtTime(0.12, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.start(t);
+                    osc.stop(t + 0.05);
+                }
+            } catch (err) {
+                console.warn("Audio Context playback halted: ", err);
+            }
+        }
+
         // Dynamic State Save to Firestore (Partitioned Database to prevent overwrites)
         async function save() {
-            // Save locally as a robust fallback first
             localStorage.setItem('mentorlog_production_state_v2', JSON.stringify(globalDatabase));
-            
             if (!auth.currentUser) return;
 
             try {
-                // RULE 1: STRICT PATHS CONSTRAINTS FOR GENERAL STORAGE
                 if (globalDatabase.activeUserId && globalDatabase.users[globalDatabase.activeUserId]) {
                     const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', globalDatabase.activeUserId);
                     await setDoc(userRef, globalDatabase.users[globalDatabase.activeUserId]);
@@ -675,6 +787,8 @@
                     role: "teacher",
                     associatedGuards: [sampleGuardianId],
                     mirrorPermissionGranted: true,
+                    defaultHours: 1,
+                    defaultMinutes: 45,
                     imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
                 };
                 if (auth.currentUser) {
@@ -706,7 +820,7 @@
                     teacherName: "Alex Km. (Demo)",
                     institution: "Mirpur Cantonment Public",
                     className: "Class 10 — Physics",
-                    monthlyPayment: "15,000 BDT",
+                    monthlyPayment: "15000",
                     isActive: true,
                     startDate: new Date().toISOString(),
                     targetEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -745,6 +859,7 @@
 
         // Danger Zone: 1-Tap Permanent Account and Data Wipeout Action
         window.triggerAccountWipe = function() {
+            playSoundChime('click');
             const userId = globalDatabase.activeUserId;
             if (!userId) return;
 
@@ -752,39 +867,33 @@
                 if (res.confirmed && res.value === "WIPE") {
                     const currentUser = globalDatabase.users[userId] || { name: "User" };
 
-                    // Locate any student profiles linked to this user
                     const associatedStudents = Object.keys(globalDatabase.students || {}).filter(key => {
                         const s = globalDatabase.students[key];
                         return s && (s.teacherName === currentUser.name || s.studentName === `${currentUser.name}'s Class` || s.studentName === currentUser.name);
                     });
 
-                    // Clear local storage and browser state caches *immediately* before database actions so it acts as a robust local purge
+                    // Clear local storage and browser state caches immediately
                     globalDatabase.activeUserId = null;
                     isViewingMirroredPartner = false;
                     localStorage.removeItem('mentorlog_production_state_v2');
 
                     try {
                         if (auth.currentUser) {
-                            // Purge matching profile documents from live Firestore
                             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', userId));
                             
-                            // Purge matching connection index tracking blocks (RULE 1 Compliant)
                             const connectionRef = doc(db, 'artifacts', appId, 'public', 'data', 'connections', currentUser.connectionCode || 'none');
                             await deleteDoc(connectionRef);
 
-                            // Purge associated student logs from live Firestore
                             for (const sId of associatedStudents) {
                                 await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', sId));
                             }
                         }
 
-                        // Purge local memory instances
                         delete globalDatabase.users[userId];
                         associatedStudents.forEach(sId => {
                             delete globalDatabase.students[sId];
                         });
 
-                        // Clean logout, update overlays, and refresh
                         toggleProfileModal(false);
                         displayAuthScreenOverlay(true);
                         launchToast("Your entire account and associated datasets have been wiped successfully.", "success");
@@ -792,8 +901,7 @@
                         await signOut(auth);
                         window.location.reload();
                     } catch (err) {
-                        console.error("Purging failed, but local session cleared: ", err);
-                        // Force clean reload anyway so user is securely logged out locally
+                        console.error("Purging failed: ", err);
                         toggleProfileModal(false);
                         displayAuthScreenOverlay(true);
                         await signOut(auth);
@@ -829,9 +937,11 @@
             student.pauseStartDate = null;
             student.stickyDismissed = false; 
             student.cyclePassedSinceDate = null;
-            student.unpaidInvoices = []; // Clear billing stack upon clean next month rotation
 
-            let initialMsg = 'Temporal monitoring limits bounds instantiated.';
+            // Clear stack on cycle renewal reset
+            student.unpaidInvoices = [];
+
+            let initialMsg = `Temporal monitoring limits bounds instantiated. Calculated Single Class Baseline duration: ${Math.floor(CLASS_TARGET_MINUTES / 60)}h ${CLASS_TARGET_MINUTES % 60}m.`;
             if (rolloverClasses > 0) {
                 initialMsg += ` Calculated rollover parameters applied: +${rolloverClasses} structural units and +${rolloverPartialMinutes}m preserved to seed this frame.`;
             }
@@ -856,7 +966,7 @@
                 teacherName: "Mentor Profile",
                 institution: "Academics",
                 className: "General Study Pipeline",
-                monthlyPayment: "Negotiated Standard Rate",
+                monthlyPayment: "15000",
                 isActive: true,
                 startDate: new Date().toISOString(),
                 targetEndDate: null,
@@ -875,38 +985,9 @@
             resetActiveStudentEngine(false);
         }
 
-        // IN-APP DYNAMIC TOAST MANAGER
-        window.launchToast = function(message, type = 'info') {
-            const portal = document.getElementById('toast-wrapper-portal');
-            if(!portal) return;
-
-            const toast = document.createElement('div');
-            toast.className = "p-3 bg-white border rounded-xl shadow-lg flex items-start gap-2.5 pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 text-xs";
-            
-            let colorAccent = "border-[#eaddcd] text-slateCharcoal";
-            if(type === 'error') colorAccent = "border-red-200 bg-red-50 text-red-800";
-            if(type === 'success') colorAccent = "border-emerald-200 bg-emerald-50 text-emerald-800";
-            if(type === 'warning') colorAccent = "border-amber-200 bg-amber-50 text-amber-900";
-
-            toast.className += ` ${colorAccent}`;
-            toast.innerHTML = `
-                <div class="flex-1 font-medium">${message}</div>
-                <button onclick="this.parentElement.remove()" class="text-gray-400 hover:text-gray-600 font-bold ml-1">×</button>
-            `;
-
-            portal.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-[-4px]');
-                setTimeout(() => toast.remove(), 300);
-            }, 4500);
-        }
-
         // DESIGN DIRECTIVE: AESTHETIC COMPONENT BASED MODALS FOR DIALOGS
         window.openCustomModal = function(title, desc, isPrompt = false, defaultValue = "") {
+            playSoundChime('click');
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-description').innerText = desc;
             
@@ -928,6 +1009,7 @@
         }
 
         window.closeCustomModal = function(confirmed) {
+            playSoundChime('click');
             document.getElementById('custom-modal-overlay').classList.add('hidden');
             if (activeModalResolver) {
                 if (confirmed) {
@@ -941,9 +1023,12 @@
         }
 
         window.toggleProfileModal = function(show) {
+            playSoundChime('click');
             const overlay = document.getElementById('profile-modal-overlay');
             if(show) {
                 const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+                const durConfig = document.getElementById('teacher-profile-duration-config');
+
                 if(currentUser) {
                     document.getElementById('prof-username').value = currentUser.name || "";
                     document.getElementById('prof-img-url').value = currentUser.imgUrl || "";
@@ -953,6 +1038,14 @@
                     document.getElementById('prof-inst').value = currentUser.institution || "";
                     document.getElementById('prof-ssc').value = currentUser.sscGrade || "";
                     document.getElementById('prof-hsc').value = currentUser.hscGrade || "";
+
+                    if (currentUser.role === 'teacher') {
+                        if (durConfig) durConfig.classList.remove('hidden');
+                        document.getElementById('prof-class-hours').value = currentUser.defaultHours !== undefined ? currentUser.defaultHours : 1;
+                        document.getElementById('prof-class-minutes').value = currentUser.defaultMinutes !== undefined ? currentUser.defaultMinutes : 45;
+                    } else {
+                        if (durConfig) durConfig.classList.add('hidden');
+                    }
                 }
                 overlay.classList.remove('hidden');
             } else {
@@ -961,6 +1054,7 @@
         }
 
         window.saveUserProfile = function() {
+            playSoundChime('click');
             const currentUser = globalDatabase.users[globalDatabase.activeUserId];
             if(!currentUser) return;
 
@@ -976,13 +1070,26 @@
             currentUser.sscGrade = document.getElementById('prof-ssc').value.trim();
             currentUser.hscGrade = document.getElementById('prof-hsc').value.trim();
 
+            if (currentUser.role === 'teacher') {
+                const hVal = parseInt(document.getElementById('prof-class-hours').value) || 0;
+                const mVal = parseInt(document.getElementById('prof-class-minutes').value) || 0;
+                
+                if ((hVal * 60 + mVal) <= 0) {
+                    return launchToast("Base class duration cannot resolve to zero.", "error");
+                }
+                currentUser.defaultHours = hVal;
+                currentUser.defaultMinutes = mVal;
+                CLASS_TARGET_MINUTES = (hVal * 60) + mVal;
+            }
+
             save();
             toggleProfileModal(false);
             render();
-            launchToast("User credentials and profiles updated successfully.", "success");
+            launchToast("User credentials and profile modifications saved successfully.", "success");
         }
 
         window.setAuthMode = function(mode) {
+            playSoundChime('click');
             currentAuthMode = mode;
             const tabLogin = document.getElementById('auth-tab-login');
             const tabRegister = document.getElementById('auth-tab-register');
@@ -1009,6 +1116,7 @@
         }
 
         window.setAuthRole = function(role) {
+            playSoundChime('click');
             currentAuthRole = role;
             const btnTeacher = document.getElementById('auth-role-teacher');
             const btnPageGuardian = document.getElementById('auth-role-guardian');
@@ -1023,6 +1131,7 @@
         }
 
         window.processAuthSubmission = function() {
+            playSoundChime('click');
             const credInput = document.getElementById('auth-input-credential').value.trim();
             const nameInput = document.getElementById('auth-input-name').value.trim();
 
@@ -1036,6 +1145,12 @@
                     }
                     globalDatabase.activeUserId = credInput;
                     globalDatabase.currentView = matchedUser.role;
+
+                    // Set standard target from teacher's preferred settings on login
+                    if (matchedUser.role === 'teacher' && matchedUser.defaultHours !== undefined) {
+                        CLASS_TARGET_MINUTES = (matchedUser.defaultHours * 60) + (matchedUser.defaultMinutes || 0);
+                    }
+                    
                     save();
                     displayAuthScreenOverlay(false);
                     render();
@@ -1072,14 +1187,15 @@
                     id: generatedId,
                     name: nameInput,
                     role: currentAuthRole,
-                    connectionCode: generatedId, // Store key in document to make it queryable (RULE 1 Compliant)
+                    connectionCode: generatedId,
+                    defaultHours: currentAuthRole === 'teacher' ? 1 : undefined,
+                    defaultMinutes: currentAuthRole === 'teacher' ? 45 : undefined,
                     generatedInvites: [],
                     associatedGuards: linkedGuardianId ? [linkedGuardianId] : [],
                     mirrorPermissionGranted: false,
                     imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
                 };
 
-                // Store unique linkage index under strict collection path constraints (RULE 1)
                 if (auth.currentUser) {
                     const connectionRef = doc(db, 'artifacts', appId, 'public', 'data', 'connections', generatedId);
                     setDoc(connectionRef, { uid: generatedId, role: currentAuthRole });
@@ -1098,7 +1214,7 @@
                         teacherName: nameInput,
                         institution: "Bridged System Channel",
                         className: "Primary Tracking Workspace",
-                        monthlyPayment: "Negotiated Terms BDT",
+                        monthlyPayment: "15000",
                         isActive: true,
                         startDate: new Date().toISOString(),
                         targetEndDate: null,
@@ -1139,20 +1255,8 @@
             }
         }
 
-        window.quickDemoLogin = function(id, role) {
-            globalDatabase.activeUserId = id;
-            globalDatabase.currentView = role;
-            save();
-            displayAuthScreenOverlay(false);
-            render();
-            launchToast(`Logged in successfully under demo node: ${id}`, "success");
-        }
-
-        // BIND DEMO CLICKS TO PREVENT MODULE SCOPE BLOCK COLD-STARTS
-        document.getElementById('btn-demo-teacher').onclick = () => window.quickDemoLogin('ML-T-SAMPLE', 'teacher');
-        document.getElementById('btn-demo-parent').onclick = () => window.quickDemoLogin('ML-G-SAMPLE', 'guardian');
-
         window.terminateAuthenticatedSession = function() {
+            playSoundChime('click');
             openCustomModal("Sign Out", "Are you sure you want to terminate this local device session? Verification keys will be required to restore tracking access.").then((res) => {
                 if (res.confirmed) {
                     globalDatabase.activeUserId = null;
@@ -1165,6 +1269,7 @@
         }
 
         window.attemptViewSwitch = function(targetRoleView) {
+            playSoundChime('click');
             const currentUser = globalDatabase.users[globalDatabase.activeUserId];
             if (!currentUser) return;
 
@@ -1184,6 +1289,7 @@
         }
 
         window.copyLocalNodeKey = function() {
+            playSoundChime('click');
             const temp = document.createElement('textarea');
             temp.value = globalDatabase.activeUserId;
             document.body.appendChild(temp);
@@ -1193,8 +1299,8 @@
             launchToast("Account node passcode written to clipboard.", "success");
         }
 
-        // RE-ENGINEERED PEERING SYSTEM: LOCAL-FIRST PARALLEL RESOLUTION PATH (Zero Overwrite Conflicts)
         window.executeDirectPairing = function() {
+            playSoundChime('click');
             const input = document.getElementById('input-link-peer-key');
             const targetKey = input.value.trim();
             const currentUser = globalDatabase.users[globalDatabase.activeUserId];
@@ -1214,7 +1320,6 @@
                 const tId = currentUser.role === 'teacher' ? currentUser.id : matchedAgent.id;
                 const gId = currentUser.role === 'guardian' ? currentUser.id : matchedAgent.id;
 
-                // Sync details on both profiles in database memory
                 globalDatabase.users[tId] = globalDatabase.users[tId] || currentUser;
                 globalDatabase.users[gId] = globalDatabase.users[gId] || matchedAgent;
 
@@ -1222,20 +1327,18 @@
                 input.value = '';
             };
 
-            // Direct Memory Peering Route
             if (globalDatabase.users && globalDatabase.users[targetKey]) {
                 completeBindingSequence(globalDatabase.users[targetKey]);
                 return;
             }
 
-            // Dual Cloud-Fallback Query Route (Bypasses active indexing limitations and complies with RULE 1)
             const targetRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', targetKey);
             getDoc(targetRef).then((targetSnap) => {
                 if (!targetSnap.exists()) {
                     return launchToast("Cryptographic identifier search failed across registered keys.", "error");
                 }
                 const matchedAgent = targetSnap.data();
-                globalDatabase.users[targetKey] = matchedAgent; // Seed snapshot into local registry
+                globalDatabase.users[targetKey] = matchedAgent;
                 completeBindingSequence(matchedAgent);
             }).catch(err => {
                 console.error("Peer lookup error: ", err);
@@ -1244,12 +1347,14 @@
         }
 
         window.toggleSidebarLayout = function() {
+            playSoundChime('click');
             globalDatabase.sidebarOpen = !globalDatabase.sidebarOpen;
             save();
             applySidebarState();
         }
 
         window.toggleActiveStatus = function() {
+            playSoundChime('click');
             if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
             const student = getActiveStudent();
             if (student.isActive) {
@@ -1290,6 +1395,7 @@
         }
 
         window.unilateralClearCycle = function() {
+            playSoundChime('click');
             if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
             const student = getActiveStudent();
             if (!student.isActive) return launchToast("Execution Error: Target record frame state is currently muted.", "error");
@@ -1321,15 +1427,20 @@
         }
 
         window.toggleStudentForm = function() {
+            playSoundChime('click');
             document.getElementById('new-student-form').classList.toggle('hidden');
         }
 
         window.submitNewStudent = function() {
+            playSoundChime('click');
             const nameIn = document.getElementById('form-student-name').value.trim();
             const teacherIn = document.getElementById('form-teacher-name').value.trim() || "Instructor";
             const instIn = document.getElementById('form-institution').value.trim() || "School";
             const classIn = document.getElementById('form-class').value.trim() || "General Studies";
-            const payIn = document.getElementById('form-payment').value.trim() || "Negotiated BDT Scale";
+            
+            // Clean BDT format mapping support
+            const rawPayment = document.getElementById('form-payment').value.trim();
+            const payIn = rawPayment ? rawPayment.replace(/[^0-9]/g, '') : "15000";
 
             if (!nameIn) return launchToast("Input verification failure: Student name parameter missing.", "error");
 
@@ -1340,7 +1451,7 @@
                 teacherName: teacherIn,
                 institution: instIn,
                 className: classIn,
-                monthlyPayment: payIn,
+                monthlyPayment: payIn, // Safe numeric string parameter
                 isActive: true,
                 startDate: new Date().toISOString(),
                 targetEndDate: null,
@@ -1385,6 +1496,7 @@
         }
 
         window.toggleMirrorPermission = function() {
+            playSoundChime('click');
             const currentUser = globalDatabase.users[globalDatabase.activeUserId];
             if(!currentUser) return;
 
@@ -1395,6 +1507,7 @@
         }
 
         window.accessPartnerViewFrame = function() {
+            playSoundChime('click');
             const currentUser = globalDatabase.users[globalDatabase.activeUserId];
             if(!currentUser || !currentUser.associatedGuards || currentUser.associatedGuards.length === 0) return;
 
@@ -1409,34 +1522,40 @@
             launchToast(`Peering actively through secure mirrored channel. Inspecting: ${targetPartner.name}`, "success");
         }
 
-        window.handleLogClass = function(minutesToAdd, isCustom = false, formattedText = "") {
+        window.handleLogClass = function(minutesToAdd) {
+            playSoundChime('click');
             if(isViewingMirroredPartner) return launchToast("Cannot submit modifications while in mirrored inspection mode.", "error");
             const student = getActiveStudent();
             if (!student.isActive) return launchToast("Write block rejected: Blueprint is explicitly deactivated.", "error");
             if (student.isPaused) return launchToast("Timeline execution state is currently frozen.", "warning");
 
-            student.totalMinutes += minutesToAdd;
-            let currentPool = student.runningPartialMinutes + minutesToAdd;
+            // Auto-resolve dynamic duration parameter from local teacher configurations
+            const currentMinutes = minutesToAdd !== null ? minutesToAdd : CLASS_TARGET_MINUTES;
+
+            student.totalMinutes += currentMinutes;
+            let currentPool = student.runningPartialMinutes + currentMinutes;
             let fullClassesEarned = Math.floor(currentPool / CLASS_TARGET_MINUTES);
             student.runningPartialMinutes = currentPool % CLASS_TARGET_MINUTES;
+
+            const hLabel = Math.floor(CLASS_TARGET_MINUTES / 60);
+            const mLabel = CLASS_TARGET_MINUTES % 60;
+            const targetDurationText = `${hLabel > 0 ? hLabel + 'h ' : ''}${mLabel}m`;
 
             if (fullClassesEarned > 0) {
                 student.classesLogged += fullClassesEarned;
                 
                 let classIdxNote = `Class ${student.classesLogged} of 12`;
-                let detailsMsg = isCustom ? `Registered Delta block: ${formattedText} [${classIdxNote}].` : `Unit execution structure: 1h 45m (${currentClassMode.toUpperCase()}) [${classIdxNote}].`;
+                let detailsMsg = minutesToAdd !== null 
+                    ? `Registered Custom block: ${Math.floor(minutesToAdd / 60)}h ${minutesToAdd % 60}m [${classIdxNote}].` 
+                    : `Unit execution structure: ${targetDurationText} (${currentClassMode.toUpperCase()}) [${classIdxNote}].`;
                 
-                if(isCustom && currentPool > minutesToAdd) {
-                    detailsMsg += ` Outstandings resolved to balance standard class increments.`;
-                }
-
                 student.logs.unshift({
                     id: Date.now(),
                     date: new Date().toISOString(),
                     event: `Class Session Recorded`,
                     details: detailsMsg,
                     color: 'text-sage',
-                    badge: isCustom ? 'Custom' : currentClassMode,
+                    badge: minutesToAdd !== null ? 'Custom' : currentClassMode,
                     classIndex: student.classesLogged
                 });
                 launchToast(`Class ${student.classesLogged} logged into tracking sequence.`, "success");
@@ -1446,7 +1565,7 @@
                     id: Date.now(),
                     date: new Date().toISOString(),
                     event: `Partial Discrepancy Logged`,
-                    details: `Appended ${formattedText}. Session saved to historical registers. ${dueDeficit} minutes required to scale up to Class ${student.classesLogged + 1}.`,
+                    details: `Appended partial block duration. ${dueDeficit} minutes required to scale up to Class ${student.classesLogged + 1}.`,
                     color: 'text-indigo-400',
                     badge: 'Partial'
                 });
@@ -1466,13 +1585,13 @@
 
             if (totalInMinutes <= 0) return launchToast("Input verification failure: Delta value must track above zero.", "warning");
 
-            let formatDisplay = `${hours > 0 ? hours + 'h ' : ''}${minutes}m`;
-            handleLogClass(totalInMinutes, true, formatDisplay);
+            handleLogClass(totalInMinutes);
             hInput.value = 0;
             mInput.value = 0;
         }
 
         window.handleCancellation = function() {
+            playSoundChime('click');
             if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
             const student = getActiveStudent();
             if (!student.isActive) return;
@@ -1496,6 +1615,7 @@
         }
 
         window.handlePostpone = function() {
+            playSoundChime('click');
             if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
             const student = getActiveStudent();
             if (!student.isActive) return;
@@ -1520,6 +1640,7 @@
         }
 
         window.handleTogglePause = function() {
+            playSoundChime('click');
             if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
             const student = getActiveStudent();
             if (!student.isActive) return;
@@ -1568,6 +1689,7 @@
         }
 
         window.triggerPaymentReset = function(isGuardianOverride = false) {
+            playSoundChime('click');
             if(isViewingMirroredPartner) return launchToast("Cannot modify state in inspect-only Mirror mode.", "warning");
             const student = getActiveStudent();
             
@@ -1619,11 +1741,12 @@
         }
 
         window.simulateTime = function(days) {
+            playSoundChime('click');
             const student = getActiveStudent();
             let start = new Date(student.startDate);
             let target = new Date(student.targetEndDate);
 
-            start.setDate(start.toISOString() === student.startDate ? start.getDate() - days : start.getDate() - days);
+            start.setDate(start.getDate() - days);
             target.setDate(target.getDate() - days);
 
             student.startDate = start.toISOString();
@@ -1677,7 +1800,7 @@
                 teacherName: teacher.name,
                 institution: "Shared Active Tuition",
                 className: "Tuition Contract Tracking",
-                monthlyPayment: "Negotiated Bridge Structure",
+                monthlyPayment: "15000",
                 isActive: true,
                 startDate: new Date().toISOString(),
                 targetEndDate: null,
@@ -1694,7 +1817,7 @@
                     id: Date.now(),
                     date: new Date().toISOString(),
                     event: "Identity Sync Matrix Established",
-                    details: `Shared channel generated. Teacher [${teacher.name}] linked telemetry channels with Guardian [${guardian.name}].`,
+                    details: `Shared channel generated. Teacher [${teacher.name}] linked telemetry channels with Guardian [${globalDatabase.users[linkedGuardianId].name}].`,
                     color: "text-emerald-500",
                     badge: "Sync"
                 }]
@@ -1702,7 +1825,6 @@
 
             globalDatabase.activeStudentId = workspaceId;
             
-            // Partitioned explicit write saves for both users and the student ledger (RULE 1 Compliant)
             if (auth.currentUser) {
                 setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', teacherId), teacher);
                 setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', guardianId), guardian);
@@ -1740,7 +1862,7 @@
                 if(slider) { slider.style.left = '128px'; slider.style.width = '124px'; }
                 if(btnGuardian) { btnGuardian.classList.add('text-slateCharcoal'); btnGuardian.classList.remove('text-gray-500'); }
                 if(btnTeacher) { btnTeacher.classList.remove('text-slateCharcoal'); btnTeacher.classList.add('text-gray-500'); }
-                if(tControls) tControls.classList.add('hidden');
+                if(tControls) tControls.add('hidden');
                 if(gControls) gControls.classList.remove('hidden'); 
             }
         }
@@ -1764,6 +1886,7 @@
         }
 
         window.setClassMode = function(mode) {
+            playSoundChime('click');
             currentClassMode = mode;
             const btnOffline = document.getElementById('mode-offline');
             const btnOnline = document.getElementById('mode-online');
@@ -1777,14 +1900,16 @@
         }
 
         window.handleSwitchStudent = function(id) {
+            playSoundChime('click');
             globalDatabase.activeStudentId = id;
             save();
             render();
             launchToast("Active contract ledger index shifted.", "info");
         }
 
-        // BILLING CYCLE MULTI-MONTH STACK DISMISSAL ENGINE
+        // BILLING CYCLE MULTI-MONTH STACK DISMISSAL ENGINE (Marks dismissed permanently in Firestore)
         window.dismissInvoiceCard = function(invoiceId) {
+            playSoundChime('click');
             const student = getActiveStudent();
             const cardElement = document.getElementById(`sticky-note-${invoiceId}`);
             if (cardElement) {
@@ -1798,11 +1923,11 @@
                 }
                 save();
                 render();
-                launchToast("Tuition invoice cleared from layout.", "success");
+                launchToast("Tuition invoice dismissed cleanly.", "success");
             }, 700);
         }
 
-        // DYNAMIC OVERLAPPING INVOICE CARDS RENDERING LOGIC
+        // DYNAMIC COLLAPSED OVERLAPPING STICKY NOTES STACK
         function renderStickyNotesStack() {
             const wrapper = document.getElementById('guardian-sticky-wrapper');
             if (!wrapper) return;
@@ -1814,11 +1939,11 @@
                 wrapper.classList.remove('hidden');
                 wrapper.innerHTML = ''; // Fresh DOM repaint
                 
-                // Stack notes logically with dynamic absolute overlap offsets
+                // Stack notes logically with dynamic absolute overlapping parameters
                 activeInvoices.forEach((inv, index) => {
                     const isTop = index === activeInvoices.length - 1;
-                    const offsetRotation = (index % 3 - 1) * 3; // Rotates slightly for messy, realistic desk-look
-                    const offsetTranslateY = index * 12; // Visual stacked depth offset
+                    const offsetRotation = (index % 3 - 1) * 3; // Slanted overlapping angles
+                    const offsetTranslateY = index * 12; // Stacked depth translations
                     const offsetTranslateX = (index % 2 === 0 ? 4 : -4);
                     const zIndex = 50 + index;
                     
@@ -1827,14 +1952,16 @@
                     note.className = "absolute top-0 right-0 hanging-sticky-note cursor-pointer w-44 bg-amber-100 border border-amber-200 p-4 pt-6 rounded-b-md text-slateCharcoal text-xs flex flex-col items-center text-center gap-1.5 transition-all select-none hover:bg-amber-50";
                     note.style.transform = `rotate(${offsetRotation}deg) translateY(${offsetTranslateY}px) translateX(${offsetTranslateX}px)`;
                     note.style.zIndex = zIndex;
-                    note.style.pointerEvents = isTop ? 'auto' : 'none'; // Only top card responds to touch/click
+                    note.style.pointerEvents = isTop ? 'auto' : 'none'; // Only top card responds to touch/click events
                     
+                    const paymentAmountFormatted = student.monthlyPayment ? Number(student.monthlyPayment).toLocaleString() + ' BDT' : '15,000 BDT';
+
                     note.innerHTML = `
                         <div class="font-bold text-[10px] tracking-wider uppercase text-amber-800">${inv.title}</div>
                         <div class="w-6 h-0.5 bg-amber-300 my-0.5"></div>
-                        <p class="text-[11px] text-amber-900 font-medium leading-tight">Overdue month payment due.</p>
+                        <p class="text-[11px] text-amber-900 font-semibold leading-tight">Monthly Tuition Fee Outstanding: <br/><strong>${paymentAmountFormatted}</strong></p>
                         <span class="mt-1 inline-block bg-amber-800 text-white font-bold text-[9px] px-2 py-0.5 rounded-full shadow-sm tracking-wide">ACCOUNT DUE</span>
-                        ${isTop ? '<span class="text-[9px] text-gray-400 mt-2 block border-t border-amber-200/60 pt-1.5 w-full">Tap / Touch to dismiss</span>' : ''}
+                        ${isTop ? '<span class="text-[9px] text-gray-400 mt-2 block border-t border-amber-200/60 pt-1.5 w-full">Tap to Dismiss Stack</span>' : ''}
                     `;
                     
                     if (isTop) {
@@ -1859,7 +1986,6 @@
                 return;
             }
 
-            // Enforce key objects are initialized safely
             globalDatabase.users = globalDatabase.users || {};
             globalDatabase.students = globalDatabase.students || {};
 
@@ -1883,9 +2009,14 @@
                         avatarFooterEl.classList.add('hidden');
                     }
                 }
+
+                // Adjust default duration baseline from the teacher's profile settings
+                if (currentUser.role === 'teacher' && currentUser.defaultHours !== undefined) {
+                    CLASS_TARGET_MINUTES = (currentUser.defaultHours * 60) + (currentUser.defaultMinutes || 0);
+                }
             }
 
-            // DYNAMICALLY RENDER ASSOCIATED PEER INFORMATION CARDS (MULTIPLE TEACHERS SUPPORTED)
+            // DYNAMICALLY RENDER ASSOCIATED PEER INFORMATION CARDS
             const partnerCardList = document.getElementById('partner-card-list');
             if(partnerCardList && currentUser) {
                 partnerCardList.innerHTML = '';
@@ -2003,18 +2134,24 @@
             const cycleBadgeCountEl = document.getElementById('cycle-badge-count');
             const metricClassesEl = document.getElementById('metric-classes');
             const metricHoursEl = document.getElementById('metric-hours');
+            const metricHoursLabelEl = document.getElementById('metric-hours-label');
             const progressBarEl = document.getElementById('progress-bar');
             const dateStartEl = document.getElementById('date-start');
             const dateTargetEl = document.getElementById('date-target');
 
+            // Format payments parameter smoothly
+            const parsedPayment = student.monthlyPayment ? Number(student.monthlyPayment).toLocaleString() : '15,000';
+
             if (headerStudentTargetEl) headerStudentTargetEl.innerText = `for ${student.studentName}`;
-            if (headerProfileSubtextEl) headerProfileSubtextEl.innerText = `${student.institution} — ${student.className} • Assigned Terms Target: ${student.monthlyPayment}`;
+            if (headerProfileSubtextEl) headerProfileSubtextEl.innerText = `${student.institution} — ${student.className} • Monthly Fees: ${parsedPayment} BDT`;
 
             if (cycleBadgeCountEl) cycleBadgeCountEl.innerText = `Reconciled Cycles: ${student.completedCyclesCount}`;
             if (metricClassesEl) metricClassesEl.innerText = `${student.classesLogged} / 12`;
             
             const hoursCalculated = (student.totalMinutes / 60).toFixed(2);
-            if (metricHoursEl) metricHoursEl.innerText = `${hoursCalculated} / 21`;
+            const targetHoursRequirement = ((CLASS_TARGET_MINUTES * 12) / 60).toFixed(1);
+            if (metricHoursEl) metricHoursEl.innerText = `${hoursCalculated} / ${targetHoursRequirement}`;
+            if (metricHoursLabelEl) metricHoursLabelEl.innerText = `Total Hours (Standard: ${Math.floor(CLASS_TARGET_MINUTES / 60)}h ${CLASS_TARGET_MINUTES % 60}m per unit)`;
 
             const percentage = Math.min((student.classesLogged / 12) * 100, 100);
             if (progressBarEl) progressBarEl.style.width = `${percentage}%`;
@@ -2022,6 +2159,16 @@
             const options = { month: 'short', day: 'numeric', year: 'numeric' };
             if (dateStartEl) dateStartEl.innerText = new Date(student.startDate).toLocaleDateString(undefined, options);
             if (dateTargetEl) dateTargetEl.innerText = new Date(student.targetEndDate).toLocaleDateString(undefined, options);
+
+            const hLabel = Math.floor(CLASS_TARGET_MINUTES / 60);
+            const mLabel = CLASS_TARGET_MINUTES % 60;
+            const targetDurationText = `${hLabel > 0 ? hLabel + 'h ' : ''}${mLabel}m`;
+
+            const logBtn = document.getElementById('btn-log-standard-class');
+            if(logBtn) logBtn.innerHTML = `Log Full Class (${targetDurationText})`;
+
+            const stdCaption = document.getElementById('standard-class-caption');
+            if(stdCaption) stdCaption.innerHTML = `Log a full scheduled class session lasting exactly **${targetDurationText}** (${CLASS_TARGET_MINUTES} minutes).`;
 
             const dueWidget = document.getElementById('due-widget');
             if (dueWidget) {
@@ -2069,26 +2216,6 @@
                 }
             });
 
-            const countTeacherDelaysEl = document.getElementById('count-teacher-delays');
-            const countStudentDelaysEl = document.getElementById('count-student-delays');
-            const interruptionSummaryBadgeEl = document.getElementById('interruption-summary-badge');
-            const listTeacherNotesEl = document.getElementById('list-teacher-notes');
-            const listStudentNotesEl = document.getElementById('list-student-notes');
-
-            if (countTeacherDelaysEl) countTeacherDelaysEl.innerText = `${tDelays} Count`;
-            if (countStudentDelaysEl) countStudentDelaysEl.innerText = `${sDelays} Count`;
-            if (interruptionSummaryBadgeEl) interruptionSummaryBadgeEl.innerText = `${tDelays + sDelays} System Variance Markers`;
-
-            if (listTeacherNotesEl) {
-                if (tNotesHtml) listTeacherNotesEl.innerHTML = tNotesHtml;
-                else listTeacherNotesEl.innerHTML = `<div class="text-gray-400 italic text-[10px]">No freeze instances registered inside active frame logs.</div>`;
-            }
-
-            if (listStudentNotesEl) {
-                if (sNotesHtml) listStudentNotesEl.innerHTML = sNotesHtml;
-                else listStudentNotesEl.innerHTML = `<div class="text-gray-400 italic text-[10px]">No notice data packets registered inside active frame logs.</div>`;
-            }
-
             const badge = document.getElementById('status-badge');
             
             if (badge) {
@@ -2124,19 +2251,24 @@
             if (cycleExpired && student.isActive) {
                 if (!student.unpaidInvoices) student.unpaidInvoices = [];
                 
-                // Determine expected outstanding invoices based on completed months/overdues
                 const outstandingTotal = Math.max(1, student.completedCyclesCount);
-                while (student.unpaidInvoices.filter(i => !i.dismissed).length < outstandingTotal) {
-                    const currentOutstandingCount = student.unpaidInvoices.filter(i => !i.dismissed).length;
-                    student.unpaidInvoices.push({
-                        id: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                        title: `Month ${currentOutstandingCount + 1} Invoice`,
-                        dismissed: false
-                    });
+                const currentUnpaidCount = student.unpaidInvoices.filter(i => !i.dismissed).length;
+                
+                if (currentUnpaidCount < outstandingTotal) {
+                    // Trigger beautiful audio bell chime to notify on invoice additions
+                    playSoundChime('bell');
+
+                    while (student.unpaidInvoices.filter(i => !i.dismissed).length < outstandingTotal) {
+                        const unpaidCount = student.unpaidInvoices.filter(i => !i.dismissed).length;
+                        student.unpaidInvoices.push({
+                            id: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            title: `Month ${unpaidCount + 1} Invoice`,
+                            dismissed: false
+                        });
+                    }
                 }
             }
 
-            // TRIGGER SWINGING NOTES OVERLAPPING LAYER RENDERS
             renderStickyNotesStack();
 
             const guardianOverrideBox = document.getElementById('guardian-overdue-override-box');
@@ -2158,7 +2290,7 @@
             if (alertBox) {
                 if (cycleExpired && student.isActive) {
                     let reasonTitle = classesThresholdMet ? "Target Limit Met: 12 Classes Logged" : "Terminal Threshold Crossed: Monthly Cap Met";
-                    let reasonDesc = classesThresholdMet ? "21 core metrics units completely accounted for." : "The scheduling window allocation frame has lapsed. Reconciliation required.";
+                    let reasonDesc = classesThresholdMet ? "Tuition milestones completed. Review logs below." : "The scheduling window allocation frame has lapsed. Reconciliation required.";
                     
                     alertBox.innerHTML = `
                         <div class="bg-[#faf1ed] border-2 border-terracotta/40 rounded-2xl p-6 text-slateCharcoal shadow-sm">
@@ -2265,7 +2397,6 @@
         // Live Real-Time Handshake Engine
         const initAuth = async () => {
             try {
-                // RULE 3: AUTHENTICATE FIRST
                 await signInAnonymously(auth);
                 const badge = document.getElementById('db-status-badge');
                 if(badge) {
@@ -2282,31 +2413,57 @@
             }
         };
 
-        // Real-Time Firebase Listener
+        // Real-Time Firebase Listeners
         onAuthStateChanged(auth, async (user) => {
             if (!user) return;
             
-            // Listen to partitioned Users Collection (RULE 2: Fetch all matching documents seamlessly)
             const usersCol = collection(db, 'artifacts', appId, 'public', 'data', 'users');
             onSnapshot(usersCol, (snapshot) => {
                 globalDatabase.users = globalDatabase.users || {};
+                
+                // Track if new users or connection handshakes occurred to sound chimes
+                const preCount = Object.keys(globalDatabase.users).length;
+                
                 snapshot.forEach(docSnap => {
                     globalDatabase.users[docSnap.id] = docSnap.data();
                 });
+                
                 ensureSampleUsersExist();
+
+                if (preCount > 0 && Object.keys(globalDatabase.users).length > preCount) {
+                    playSoundChime('bell');
+                }
+                
                 render();
             }, (error) => {
                 console.error("Firestore users subscription error: ", error);
             });
 
-            // Listen to partitioned Students Collection
             const studentsCol = collection(db, 'artifacts', appId, 'public', 'data', 'students');
             onSnapshot(studentsCol, (snapshot) => {
                 globalDatabase.students = globalDatabase.students || {};
+                
+                // Track timeline increments to play chime notification triggers
+                let logCountCheck = 0;
+                Object.values(globalDatabase.students).forEach(s => {
+                    if (s && s.logs) logCountCheck += s.logs.length;
+                });
+
                 snapshot.forEach(docSnap => {
                     globalDatabase.students[docSnap.id] = docSnap.data();
                 });
+
                 ensureDefaultStudentExists();
+
+                let updatedLogCount = 0;
+                Object.values(globalDatabase.students).forEach(s => {
+                    if (s && s.logs) updatedLogCount += s.logs.length;
+                });
+
+                if (logCountCheck > 0 && updatedLogCount > logCountCheck) {
+                    playSoundChime('bell'); // Play sweet bell ding-dong on log changes!
+                }
+
                 render();
             }, (error) => {
                 console.error("Firestore students subscription error: ", error);
@@ -2317,7 +2474,6 @@
         window.addEventListener('DOMContentLoaded', () => {
             initAuth();
             
-            // Fallback load checks
             const cachedLocal = localStorage.getItem('mentorlog_production_state_v2');
             if (cachedLocal) {
                 try {
@@ -2330,7 +2486,6 @@
                 submitNewStudentDirectlyFallback();
             }
 
-            // Clean instantiation safety check
             globalDatabase.users = globalDatabase.users || {};
             globalDatabase.students = globalDatabase.students || {};
 
@@ -2339,8 +2494,24 @@
             } else {
                 displayAuthScreenOverlay(false);
                 applySidebarState();
+                
+                // Initialize default hours on startup if cached
+                const currentU = globalDatabase.users[globalDatabase.activeUserId];
+                if (currentU && currentU.role === 'teacher' && currentU.defaultHours !== undefined) {
+                    CLASS_TARGET_MINUTES = (currentU.defaultHours * 60) + (currentU.defaultMinutes || 0);
+                }
+                
                 render();
             }
+
+            // DISSOLVE THE PREMIUM INTRO COVER PAGE AFTER THE ENTIRE DOM PREPARATION COMPLETE
+            setTimeout(() => {
+                const introScreen = document.getElementById('intro-animation-screen');
+                if (introScreen) {
+                    introScreen.classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => introScreen.remove(), 1000); // Purge elements cleanly to optimize runtime memory footprints
+                }
+            }, 2500);
         });
 
         // BIND CORE MODULE HANDLERS DIRECTLY TO WINDOW ROOT SCOPE TO PREVENT ES MODULE SCOPING CRASHES
