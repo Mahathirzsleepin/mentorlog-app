@@ -241,6 +241,13 @@
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1 font-sans">Username (Mandatory)</label>
                         <input type="text" id="auth-input-name" placeholder="e.g., Alex Km." class="w-full text-xs px-3 py-2.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none">
                     </div>
+                    <!-- Inactivity Policy Checkbox (Surgical Integration) -->
+                    <div class="flex items-start gap-2 pt-2">
+                        <input type="checkbox" id="auth-input-inactivity-policy" class="w-4 h-4 rounded accent-terracotta border-[#eaddcd] mt-0.5 cursor-pointer">
+                        <label for="auth-input-inactivity-policy" class="text-[10px] text-gray-500 leading-tight cursor-pointer font-sans select-none">
+                            I agree that if an account remains inactive for more than 300 days, it should be automatically deleted.
+                        </label>
+                    </div>
                 </div>
 
                 <!-- Signin credential input card -->
@@ -519,14 +526,14 @@
                         </div>
 
                         <!-- STANDARD LOG MODALITY FRAME -->
-                        <div id="panel-standard" class="space-y-3">
-                            <p class="text-[11px] text-gray-400">Log a full scheduled class session lasting exactly **1 Hour 45 Minutes** (105 minutes).</p>
-                            <button id="btn-log-standard-class" onclick="handleLogClass(null)" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-medium text-sm py-3 px-6 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2">
-                                Log Full Class (1h 45m)
-                            </button>
-                        </div>
+                    <div id="panel-standard" class="space-y-3">
+                        <p id="standard-class-caption" class="text-[11px] text-gray-400">Log a full scheduled class session lasting exactly <strong>1h 45m</strong> (105 minutes).</p>
+                        <button id="btn-log-standard-class" onclick="handleLogClass(null)" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-medium text-sm py-3 px-6 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2">
+                            Log Full Class (1h 45m)
+                        </button>
+                    </div>
 
-                        <!-- PARTIAL LOG MODALITY FRAME -->
+                    <!-- PARTIAL LOG MODALITY FRAME -->
                         <div id="panel-partial" class="hidden space-y-3">
                             <p class="text-[11px] text-gray-400">Register shorter or custom class durations. This accumulates automatically toward standard class unit counts.</p>
                             <div class="flex gap-3 items-end">
@@ -605,14 +612,14 @@
                     <div class="bg-amber-50/50 border border-amber-200/60 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                         <div>
                             <span class="text-xs font-bold text-amber-800 block">System Simulation Helper</span>
-                            <p class="text-[11px] text-amber-700/80">Skip time forward instantaneously to test deadline triggers or adjustments without waiting weeks.</p>
+                            <p class="text-[11px] text-amber-700/80">Skip time forward instantaneously to test deadline triggers or inactivity deletion policies.</p>
                         </div>
                         <div class="flex gap-2 w-full sm:w-auto">
                             <button onclick="simulateTime(5)" class="flex-1 sm:flex-none bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 font-medium text-xs py-1.5 px-3 rounded-lg transition-all whitespace-nowrap">
                                 +5 Days Forward
                             </button>
                             <button onclick="simulateTime(30)" class="flex-1 sm:flex-none bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 font-medium text-xs py-1.5 px-3 rounded-lg transition-all whitespace-nowrap">
-                                +30 Days (Force Month Over)
+                                +30 Days
                             </button>
                         </div>
                     </div>
@@ -882,6 +889,82 @@
             }
         }
 
+        // Silent user activity heartbeat update
+        function updateUserActivity() {
+            if (globalDatabase.activeUserId && globalDatabase.users[globalDatabase.activeUserId]) {
+                globalDatabase.users[globalDatabase.activeUserId].lastActive = new Date().toISOString();
+                save();
+            }
+        }
+
+        // Live Account Deletion Sweep based on inactivity
+        async function runInactivityPolicyCheck(userId) {
+            if (!userId || userId === "FeedbackAdmin" || userId === "ML-T-SAMPLE" || userId === "ML-G-SAMPLE") return false;
+            
+            const user = globalDatabase.users[userId];
+            if (!user) return false;
+
+            if (user.autoDeleteAgreed && user.lastActive) {
+                const lastActiveDate = new Date(user.lastActive);
+                const today = new Date();
+                const diffTime = Math.abs(today - lastActiveDate);
+                const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+                // If account exceeds 300 days of inactivity
+                if (diffDays > 300) {
+                    const currentUser = user;
+                    const associatedStudents = Object.keys(globalDatabase.students || {}).filter(key => {
+                        const s = globalDatabase.students[key];
+                        return s && (s.teacherName === currentUser.name || s.studentName === `${currentUser.name}'s Class` || s.studentName === currentUser.name);
+                    });
+
+                    // Clear local browser storage parameters
+                    globalDatabase.activeUserId = null;
+                    isViewingMirroredPartner = false;
+                    localStorage.removeItem('mentorlog_production_state_v2');
+
+                    try {
+                        if (auth.currentUser) {
+                            // Surgeon purge from Firestore
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', userId));
+                            
+                            const connectionRef = doc(db, 'artifacts', appId, 'public', 'data', 'connections', currentUser.connectionCode || 'none');
+                            await deleteDoc(connectionRef);
+
+                            for (const sId of associatedStudents) {
+                                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'students', sId));
+                            }
+                        }
+
+                        delete globalDatabase.users[userId];
+                        associatedStudents.forEach(sId => {
+                            delete globalDatabase.students[sId];
+                        });
+
+                        displayAuthScreenOverlay(true);
+                        render();
+                        
+                        setTimeout(() => {
+                            openCustomModal(
+                                "Account Purged Automatically", 
+                                "This account was deleted automatically under the Inactivity Policy.\n\nReason: Activity limits surpassed (No interactions detected for 300+ days)."
+                            );
+                        }, 600);
+
+                        await signOut(auth);
+                        return true; // Successfully handled deletion
+                    } catch (err) {
+                        console.error("Auto inactivity purge process failed: ", err);
+                    }
+                }
+            }
+
+            // Keep account active since they interacted
+            user.lastActive = new Date().toISOString();
+            await save();
+            return false;
+        }
+
         // HOISTED HELPER FUNCTIONS FOR WORKSPACE STATE RESOLUTIONS
         function getActiveStudent() {
             globalDatabase.students = globalDatabase.students || {};
@@ -909,7 +992,9 @@
                     mirrorPermissionGranted: true,
                     defaultHours: 1,
                     defaultMinutes: 45,
-                    imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
+                    imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100",
+                    autoDeleteAgreed: false,
+                    lastActive: new Date().toISOString()
                 };
                 if (auth.currentUser) {
                     setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', sampleTeacherId), globalDatabase.users[sampleTeacherId]);
@@ -923,7 +1008,9 @@
                     role: "guardian",
                     associatedGuards: [sampleTeacherId],
                     mirrorPermissionGranted: true,
-                    imgUrl: "https://images.unsplash.com/photo-1479936343636-73dad5a821d8?auto=format&fit=crop&q=80&w=100"
+                    imgUrl: "https://images.unsplash.com/photo-1479936343636-73dad5a821d8?auto=format&fit=crop&q=80&w=100",
+                    autoDeleteAgreed: false,
+                    lastActive: new Date().toISOString()
                 };
                 if (auth.currentUser) {
                     setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', sampleGuardianId), globalDatabase.users[sampleGuardianId]);
@@ -1202,7 +1289,7 @@
                 CLASS_TARGET_MINUTES = (hVal * 60) + mVal;
             }
 
-            save();
+            updateUserActivity();
             toggleProfileModal(false);
             render();
             launchToast("User credentials and profile modifications saved successfully.", "success");
@@ -1250,7 +1337,7 @@
             }
         }
 
-        window.processAuthSubmission = function() {
+        window.processAuthSubmission = async function() {
             playSoundChime('click');
             const credInput = document.getElementById('auth-input-credential').value.trim();
             const nameInput = document.getElementById('auth-input-name').value.trim();
@@ -1281,6 +1368,10 @@
                         CLASS_TARGET_MINUTES = (matchedUser.defaultHours * 60) + (matchedUser.defaultMinutes || 0);
                     }
                     
+                    // Inactivity auto-delete policy sweep on login
+                    const isPurged = await runInactivityPolicyCheck(credInput);
+                    if (isPurged) return;
+
                     save();
                     displayAuthScreenOverlay(false);
                     render();
@@ -1313,6 +1404,8 @@
                     }
                 }
 
+                const agreeInactivity = document.getElementById('auth-input-inactivity-policy')?.checked || false;
+
                 globalDatabase.users[generatedId] = {
                     id: generatedId,
                     name: nameInput,
@@ -1323,7 +1416,10 @@
                     generatedInvites: [],
                     associatedGuards: linkedGuardianId ? [linkedGuardianId] : [],
                     mirrorPermissionGranted: false,
-                    imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100"
+                    imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100",
+                    // Policy Properties
+                    autoDeleteAgreed: agreeInactivity,
+                    lastActive: new Date().toISOString()
                 };
 
                 if (auth.currentUser) {
@@ -1375,6 +1471,9 @@
 
                 document.getElementById('auth-input-name').value = '';
                 document.getElementById('auth-input-credential').value = '';
+                if (document.getElementById('auth-input-inactivity-policy')) {
+                    document.getElementById('auth-input-inactivity-policy').checked = false;
+                }
                 
                 displayAuthScreenOverlay(false);
                 render();
@@ -1419,6 +1518,7 @@
                 launchToast("Access Denied: View switcher locked to registered privilege role schema.", "error");
                 return;
             }
+            updateUserActivity();
             setView(targetRoleView);
         }
 
@@ -1503,7 +1603,7 @@
                             color: 'text-red-500',
                             badge: 'System'
                         });
-                        save();
+                        updateUserActivity();
                         render();
                         launchToast("Workspace state operation parameter muted.", "info");
                     }
@@ -1520,7 +1620,7 @@
                             color: 'text-emerald-500',
                             badge: 'System'
                         });
-                        save();
+                        updateUserActivity();
                         render();
                         launchToast("Workspace telemetry operational channels active.", "success");
                     }
@@ -1553,7 +1653,7 @@
                         color: 'text-red-400',
                         badge: 'Wiped'
                     });
-                    save();
+                    updateUserActivity();
                     render();
                     launchToast("Active operational values reset to baseline.", "warning");
                 }
@@ -1610,7 +1710,7 @@
             document.getElementById('form-payment').value = '';
             toggleStudentForm();
             
-            save();
+            updateUserActivity();
             render();
             launchToast(`Tuition workspace initialized for ${nameIn}`, "success");
         }
@@ -1634,7 +1734,7 @@
             if(!currentUser) return;
 
             currentUser.mirrorPermissionGranted = !currentUser.mirrorPermissionGranted;
-            save();
+            updateUserActivity();
             render();
             launchToast(`Counter-agent dashboard inspection rights shifted to: ${currentUser.mirrorPermissionGranted ? 'GRANTED' : 'REVOKED'}.`, "info");
         }
@@ -1704,7 +1804,7 @@
                 launchToast("Partial duration block captured and cached.", "info");
             }
 
-            save();
+            updateUserActivity();
             render();
         }
 
@@ -1739,7 +1839,7 @@
                         badge: 'Absent'
                     });
 
-                    save();
+                    updateUserActivity();
                     render();
                     launchToast("Absentee event saved.", "info");
                 }
@@ -1766,7 +1866,7 @@
             });
 
             input.value = '';
-            save();
+            updateUserActivity();
             render();
             launchToast("Postponement notice committed to relational stream.", "success");
         }
@@ -1816,7 +1916,7 @@
                 launchToast("Timeline runtime counters unfrozen.", "success");
             }
 
-            save();
+            updateUserActivity();
             render();
         }
 
@@ -1865,7 +1965,7 @@
                         badge: 'Reset'
                     });
                     
-                    save();
+                    updateUserActivity();
                     render();
                     launchToast("Telemetry database structural counters shifted forward.", "success");
                 }
@@ -1894,6 +1994,14 @@
                 let pPassed = new Date(student.cyclePassedSinceDate);
                 pPassed.setDate(pPassed.getDate() - days);
                 student.cyclePassedSinceDate = pPassed.toISOString();
+            }
+
+            // Backdate lastActive to simulate inactivity policy auto-deletion!
+            const currentUser = globalDatabase.users[globalDatabase.activeUserId];
+            if (currentUser && currentUser.lastActive) {
+                let lastActiveDate = new Date(currentUser.lastActive);
+                lastActiveDate.setDate(lastActiveDate.getDate() - days);
+                currentUser.lastActive = lastActiveDate.toISOString();
             }
 
             student.logs.unshift({
@@ -2136,7 +2244,7 @@
             try {
                 globalDatabase.feedbacks = globalDatabase.feedbacks || [];
                 globalDatabase.feedbacks.unshift(feedbackDoc);
-                save();
+                updateUserActivity();
 
                 if (auth.currentUser) {
                     const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'feedbacks', feedbackDoc.id);
@@ -2456,7 +2564,7 @@
             if(logBtn) logBtn.innerHTML = `Log Full Class (${targetDurationText})`;
 
             const stdCaption = document.getElementById('standard-class-caption');
-            if(stdCaption) stdCaption.innerHTML = `Log a full scheduled class session lasting exactly **${targetDurationText}** (${CLASS_TARGET_MINUTES} minutes).`;
+            if(stdCaption) stdCaption.innerHTML = `Log a full scheduled class session lasting exactly <strong>${targetDurationText}</strong> (${CLASS_TARGET_MINUTES} minutes).`;
 
             const dueWidget = document.getElementById('due-widget');
             if (dueWidget) {
@@ -2809,7 +2917,12 @@
                     CLASS_TARGET_MINUTES = (currentU.defaultHours * 60) + (currentU.defaultMinutes || 0);
                 }
                 
-                render();
+                // Run active inactivity check on load
+                runInactivityPolicyCheck(globalDatabase.activeUserId).then((isPurged) => {
+                    if (!isPurged) {
+                        render();
+                    }
+                });
             }
 
             setTimeout(() => {
