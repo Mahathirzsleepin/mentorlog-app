@@ -116,8 +116,11 @@
     <!-- IN-APP TOAST NOTIFICATION PORTAL -->
     <div id="toast-wrapper-portal" class="fixed top-5 right-5 z-[100] space-y-3 pointer-events-none max-w-sm w-full"></div>
 
+    <!-- MOBILE NAVIGATION OVERLAY DRAWER BACKDROP -->
+    <div id="sidebar-overlay" onclick="toggleSidebarLayout()" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-30 lg:hidden hidden transition-opacity duration-300"></div>
+
     <!-- CUSTOM AESTHETIC IN-APP DIALOG MODAL -->
-    <div id="custom-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden">
+    <div id="custom-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden animate-[fadeIn_0.2s_ease-out]">
         <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-md p-6 transform scale-95 transition-all duration-300 space-y-4">
             <h3 id="modal-title" class="text-xs font-bold text-slateCharcoal uppercase tracking-wider">Attention Required</h3>
             <p id="modal-description" class="text-xs text-gray-500 leading-relaxed whitespace-pre-line"></p>
@@ -133,7 +136,7 @@
 
     <!-- PROFILE MANAGEMENT DIALOG PANEL -->
     <div id="profile-modal-overlay" class="fixed inset-0 bg-slateCharcoal/40 backdrop-blur-sm z-[80] flex items-center justify-center p-4 hidden">
-        <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto space-y-4">
+        <div class="bg-white border border-[#eaddcd] rounded-2xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto space-y-4 font-sans">
             <h3 class="text-xs font-bold text-slateCharcoal uppercase tracking-wider border-b border-gray-100 pb-2">Configure Profile & Tuition Settings</h3>
             
             <!-- Custom Default Class Duration Segment (Teacher-Only View) -->
@@ -153,15 +156,15 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                <!-- Avatar Preview & Upload Frame combined -->
+                <!-- Combined Device Upload and Custom URL Picker -->
                 <div class="sm:col-span-2">
-                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Avatar Profile Picture</label>
-                    <div class="flex flex-col sm:flex-row items-center gap-4 bg-[#fbf9f6] p-3.5 border border-[#eaddcd] rounded-xl">
-                        <img id="prof-img-preview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" class="w-14 h-14 rounded-full object-cover border border-[#eaddcd]">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Avatar Profile Image</label>
+                    <div class="flex flex-col sm:flex-row items-center gap-4 bg-[#fbf9f6] p-3 border border-[#eaddcd] rounded-xl">
+                        <img id="prof-img-preview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" class="w-14 h-14 rounded-full object-cover border border-[#eaddcd] shadow-sm">
                         <div class="flex-1 w-full space-y-2">
                             <div class="flex gap-2">
                                 <label class="cursor-pointer bg-white hover:bg-gray-50 border border-[#eaddcd] text-slateCharcoal font-semibold text-[11px] py-1.5 px-3 rounded-lg shadow-sm transition-all text-center">
-                                    Upload From Device
+                                    Upload Photo from Device
                                     <input type="file" id="prof-input-file" accept="image/*" class="hidden" onchange="handleProfileFileSelect(event)">
                                 </label>
                             </div>
@@ -183,7 +186,7 @@
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Gender (Mandatory)</label>
-                    <select id="prof-gender" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg text-xs">
+                    <select id="prof-gender" class="w-full px-3 py-2 bg-[#fbf9f6] border border-[#eaddcd] rounded-lg text-xs outline-none">
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                         <option value="Prefer not to say">Prefer not to say</option>
@@ -258,7 +261,7 @@
                     </div>
                 </div>
 
-                <!-- Signup username, mandatory email, gender, and picture fields -->
+                <!-- Signup credentials, email, gender, and profile photo -->
                 <div id="auth-field-name-group" class="hidden space-y-3">
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1 font-sans">Username (Mandatory)</label>
@@ -290,9 +293,9 @@
                         <input type="hidden" id="auth-input-img-url" value="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100">
                     </div>
                     <!-- Inactivity Policy Checkbox -->
-                    <div class="flex items-start gap-2 pt-2">
+                    <div class="flex items-start gap-2 pt-2 font-sans">
                         <input type="checkbox" id="auth-input-inactivity-policy" class="w-4 h-4 rounded accent-terracotta border-[#eaddcd] mt-0.5 cursor-pointer">
-                        <label for="auth-input-inactivity-policy" class="text-[10px] text-gray-500 leading-tight cursor-pointer font-sans select-none">
+                        <label for="auth-input-inactivity-policy" class="text-[10px] text-gray-500 leading-tight cursor-pointer select-none">
                             I agree that if an account remains inactive for more than 300 days, it should be automatically deleted.
                         </label>
                     </div>
@@ -333,7 +336,7 @@
     <div id="main-application-viewport" class="flex flex-col lg:flex-row flex-1 min-w-0 animate-[fadeIn_0.5s_ease-out]">
         
         <!-- SIDE CONTROL PANEL / RUNTIME DIALER LEDGER -->
-        <aside id="sidebar" class="w-full lg:w-80 bg-[#f4eee4] border-b lg:border-b-0 lg:border-r border-[#eaddcd] p-6 space-y-6 shrink-0 z-40 transition-all duration-300 ease-in-out overflow-hidden relative">
+        <aside id="sidebar" class="w-full lg:w-80 bg-[#f4eee4] border-b lg:border-b-0 lg:border-r border-[#eaddcd] p-6 space-y-6 shrink-0 lg:z-0 z-40 transition-all duration-300 ease-in-out lg:static fixed inset-y-0 left-0 overflow-y-auto transform -translate-x-full lg:translate-x-0 shadow-xl lg:shadow-none">
             <div class="flex justify-between items-center border-b border-[#eaddcd] pb-3">
                 <div>
                     <h2 class="text-xs font-bold uppercase tracking-widest text-slateCharcoal/60 mb-1 font-sans">Tuition Profiles</h2>
@@ -346,7 +349,7 @@
             <div id="sidebar-partners-area" class="bg-white border border-[#eaddcd] rounded-xl p-3 shadow-sm space-y-3">
                 <h3 class="text-[10px] font-bold uppercase tracking-wider text-slateCharcoal/60 flex items-center justify-between font-sans">
                     <span>Connected Peer Profiles</span>
-                    <span class="w-2 h-2 rounded-full bg-sage" id="peer-status-dot"></span>
+                    <span class="w-2 h-2 rounded-full bg-sage animate-pulse" id="peer-status-dot"></span>
                 </h3>
                 <div id="partner-card-list" class="space-y-3"></div>
             </div>
@@ -394,29 +397,29 @@
             </div>
 
             <!-- HISTORIC DATE SEARCH ENGINE -->
-            <div class="bg-white border border-[#eaddcd] rounded-xl p-3 shadow-sm space-y-2">
+            <div class="bg-white border border-[#eaddcd] rounded-xl p-3 shadow-sm space-y-2 font-sans">
                 <h3 class="text-[10px] font-bold uppercase tracking-wider text-slateCharcoal/60 flex items-center gap-1 font-sans">
                     <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     Search Logs by Date
                 </h3>
                 <input type="date" id="search-date-input" oninput="handleDateSearch()" class="w-full text-xs px-2.5 py-1.5 bg-[#fbf9f6] border border-[#eaddcd] rounded-md focus:outline-none focus:border-terracotta">
-                <button id="clear-search-btn" onclick="clearDateSearch()" class="hidden w-full text-center text-[10px] text-terracotta hover:underline font-medium font-sans">Clear Filter</button>
+                <button id="clear-search-btn" onclick="clearDateSearch()" class="hidden w-full text-center text-[10px] text-terracotta hover:underline font-medium">Clear Filter</button>
             </div>
 
             <!-- METADATA FOOTER FRAME -->
-            <div class="absolute bottom-4 left-4 right-4 bg-white/75 backdrop-blur-md border border-[#eaddcd] p-3 rounded-xl flex items-center justify-between shadow-sm">
+            <div class="absolute bottom-4 left-4 right-4 bg-white/75 backdrop-blur-md border border-[#eaddcd] p-3 rounded-xl flex items-center justify-between shadow-sm font-sans">
                 <div class="truncate mr-2 flex items-center gap-2">
                     <img id="avatar-footer-preview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100" class="w-7 h-7 rounded-full object-cover border border-[#eaddcd]">
-                    <div class="truncate font-sans">
+                    <div class="truncate">
                         <div id="user-profile-tag-name" class="font-bold text-xs text-slateCharcoal truncate">Loading</div>
                         <div id="user-profile-tag-role" class="text-[9px] uppercase tracking-widest text-gray-400 font-bold mt-0.5">—</div>
                     </div>
                 </div>
                 <div class="flex flex-col items-end gap-1.5 shrink-0 select-none">
-                    <button onclick="terminateAuthenticatedSession()" class="text-[10px] font-bold text-terracotta hover:text-red-700 underline shrink-0 font-sans">
+                    <button onclick="terminateAuthenticatedSession()" class="text-[10px] font-bold text-terracotta hover:text-red-700 underline shrink-0">
                         Sign Out
                     </button>
-                    <button onclick="triggerAccountWipe()" class="text-[9px] font-bold text-red-500 hover:text-red-700 hover:underline shrink-0 flex items-center gap-1 font-sans">
+                    <button onclick="triggerAccountWipe()" class="text-[9px] font-bold text-red-500 hover:text-red-700 hover:underline shrink-0 flex items-center gap-1">
                         <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> WIPE
                     </button>
                 </div>
@@ -426,8 +429,8 @@
         <!-- MASTER LAYOUT CONSOLE WINDOW -->
         <div class="flex-1 min-w-0 relative pb-16">
             
-            <!-- SIDEBAR MINIMIZE ACTION BUTTON (Adaptive position for Mobile and PC) -->
-            <button id="sidebar-toggle-btn" onclick="toggleSidebarLayout()" class="flex absolute top-7 right-4 lg:left-0 lg:-translate-x-1/2 w-7 h-7 rounded-full bg-slateCharcoal hover:bg-neutral-800 text-white items-center justify-center shadow-md z-50 transition-all duration-300 focus:outline-none border border-[#eaddcd]/60">
+            <!-- ADAPTIVE SIDEBAR TOGGLE BUTTON (Supports Both PC Drawer Toggle and Mobile Side-Drawer Drawer) -->
+            <button id="sidebar-toggle-btn" onclick="toggleSidebarLayout()" class="flex absolute top-7 left-4 lg:left-0 lg:-translate-x-1/2 w-7 h-7 rounded-full bg-slateCharcoal hover:bg-neutral-800 text-white items-center justify-center shadow-md z-50 transition-all duration-300 focus:outline-none border border-[#eaddcd]/60">
                 <svg id="toggle-button-icon" class="w-3.5 h-3.5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
                 </svg>
@@ -437,8 +440,8 @@
             <div id="guardian-sticky-wrapper" class="fixed top-0 right-4 sm:right-12 z-50 pointer-events-none w-44 h-96 flex flex-col justify-start"></div>
 
             <!-- APPLICATION TOP NAV HEADER -->
-            <header class="max-w-5xl mx-auto px-4 pt-6 pb-4 flex flex-col sm:flex-row justify-between items-center border-b border-[#eaddcd] gap-4 font-sans">
-                <div>
+            <header class="max-w-5xl mx-auto px-4 pt-6 pb-4 flex flex-col sm:flex-row justify-between items-center border-b border-[#eaddcd] gap-4 pl-14 lg:pl-4">
+                <div class="font-sans">
                     <div class="flex items-center gap-2">
                         <h1 class="text-xl font-bold tracking-tight text-slateCharcoal">MentorLog <span id="header-student-target" class="text-terracotta font-normal">Loading...</span></h1>
                         <span id="cycle-badge-count" class="bg-slateCharcoal text-white text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wide shadow-sm">Completed Months: 0</span>
@@ -513,7 +516,7 @@
                     <div id="payment-alert" class="hidden transform transition-all duration-500"></div>
 
                     <!-- RUNTIME METRICS SHEET -->
-                    <div class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm relative overflow-hidden font-sans">
+                    <div class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm relative overflow-hidden">
                         <div id="status-badge" onclick="toggleActiveStatus()" class="absolute top-4 right-4 text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full cursor-pointer select-none transition-all font-sans">
                             Active Parameters
                         </div>
@@ -539,15 +542,15 @@
                         <!-- CURRENT PARTIAL TRACK ACCUMULATION CONTAINER -->
                         <div id="due-widget" class="transition-all duration-300 hidden mb-4 p-3 rounded-xl bg-orange-50/70 border border-orange-200/50 flex justify-between items-center text-xs text-orange-800"></div>
 
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs border-t border-[#f7f4f0] pt-4 text-gray-600">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs border-t border-[#f7f4f0] pt-4 text-gray-600 font-sans">
                             <div><span class="text-gray-400">Month Inception:</span> <span id="date-start">—</span></div>
                             <div><span class="text-gray-400">Monthly Target Deadline:</span> <span id="date-target">—</span></div>
                         </div>
                     </div>
 
                     <!-- RUNTIME INGESTION INTERFACE: TEACHER CONTROLS -->
-                    <div id="teacher-controls" class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm space-y-6 font-sans">
-                        <div class="flex justify-between items-center border-b border-[#f7f4f0] pb-2">
+                    <div id="teacher-controls" class="bg-white border border-[#eaddcd] rounded-2xl p-6 shadow-sm space-y-6">
+                        <div class="flex justify-between items-center border-b border-[#f7f4f0] pb-2 font-sans">
                             <h2 class="text-sm font-bold text-slateCharcoal">Instructor Controls</h2>
                             <div class="flex bg-[#f0ece6] p-0.5 rounded-lg text-[11px]">
                                 <button onclick="setLogTab('standard')" id="tab-std" class="px-3 py-1 font-medium rounded-md bg-white text-slateCharcoal shadow-sm transition-all">Full Class Block</button>
@@ -555,7 +558,7 @@
                             </div>
                         </div>
                         
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#fbf9f6] p-3 rounded-xl border border-[#eaddcd]">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#fbf9f6] p-3 rounded-xl border border-[#eaddcd] font-sans">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-semibold text-gray-600">Session Type:</span>
                                 <div class="bg-white p-0.5 rounded-lg flex border border-[#eaddcd] w-32">
@@ -582,9 +585,9 @@
                         </div>
 
                         <!-- PARTIAL LOG MODALITY FRAME -->
-                        <div id="panel-partial" class="hidden space-y-3">
+                        <div id="panel-partial" class="hidden space-y-3 font-sans">
                             <p class="text-[11px] text-gray-400">Register shorter or custom class durations. This accumulates automatically toward standard class unit counts.</p>
-                            <div class="flex gap-3 items-end font-sans">
+                            <div class="flex gap-3 items-end">
                                 <div class="flex-1">
                                     <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Hours</label>
                                     <input type="number" id="custom-hours" min="0" value="0" class="w-full px-3 py-2 text-sm bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none focus:border-terracotta">
@@ -600,7 +603,7 @@
                         </div>
 
                         <!-- SUSPENSION CONTROLS INTERFACE -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-[#f7f4f0]">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-[#f7f4f0] font-sans">
                             <div class="bg-[#fdfaf7] border border-[#f5ebe0] rounded-xl p-4 flex flex-col justify-between">
                                 <div>
                                     <span class="block text-xs font-semibold text-gray-700 mb-1">Student Absent Today</span>
@@ -635,7 +638,7 @@
                                 <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                 <div>
                                     <span class="block text-xs font-bold text-red-800">Forced Billing Overdue Reset Unlocked</span>
-                                    <p class="text-[11px] text-red-700/90 leading-relaxed mt-0.5">The current contract tracking period has scaled **10 days past expiration bounds** without any reset inputs from the mentor. Parents can now force clear progress logs.</p>
+                                    <p class="text-[11px] text-red-700/90 leading-relaxed mt-0.5">The current contract tracking period has scaled 10 days past expiration bounds without any reset inputs from the mentor. Parents can now force clear progress logs.</p>
                                 </div>
                             </div>
                             <button onclick="triggerPaymentReset(true)" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium text-xs py-2.5 px-4 rounded-xl shadow-sm transition-all tracking-wide">
@@ -646,7 +649,7 @@
                         <!-- RESCHEDULE TERMINALS -->
                         <div class="space-y-3">
                             <h2 class="text-sm font-bold text-slateCharcoal border-b border-[#f7f4f0] pb-2">Student & Guardian Actions</h2>
-                            <label class="block text-xs font-semibold text-gray-600 font-sans">Postpone or Reschedule Class Session</label>
+                            <label class="block text-xs font-semibold text-gray-600">Postpone or Reschedule Class Session</label>
                             <div class="space-y-2">
                                 <input type="text" id="postpone-note" placeholder="Reason (e.g., Midterm Exams)" class="w-full px-3 py-2.5 text-xs bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none">
                                 <button onclick="handlePostpone()" class="w-full bg-slateCharcoal hover:bg-gray-700 text-white font-medium text-xs py-3 px-4 rounded-xl shadow-sm flex justify-center items-center gap-2">
@@ -683,7 +686,7 @@
                         </p>
                         <div class="space-y-3 text-xs">
                             <textarea id="feedback-text" rows="3" placeholder="Type your thoughts, reports, or messages here..." class="w-full p-3 bg-[#fbf9f6] border border-[#eaddcd] rounded-xl focus:outline-none focus:border-terracotta resize-none font-sans leading-relaxed"></textarea>
-                            <button onclick="submitFeedbackForm()" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-semibold text-xs py-2.5 rounded-xl transition-all shadow-sm flex justify-center items-center gap-1.5">
+                            <button onclick="submitFeedbackForm()" class="w-full bg-terracotta hover:bg-terracottaHover text-white font-semibold text-xs py-2.5 rounded-xl transition-all shadow-sm flex justify-center items-center gap-1.5 font-sans">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                                 Send Feedback
                             </button>
@@ -898,11 +901,11 @@
 
             toast.className += " " + bgClass;
             toast.innerHTML = `
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 font-sans">
                     <span>${icon}</span>
                     <span>${message}</span>
                 </div>
-                <button onclick="this.parentElement.remove()" class="text-[10px] text-gray-400 hover:text-gray-600 font-bold">✕</button>
+                <button onclick="this.parentElement.remove()" class="text-[10px] text-gray-400 hover:text-gray-600 font-bold font-sans">✕</button>
             `;
 
             wrapper.appendChild(toast);
@@ -1039,6 +1042,7 @@
                     associatedGuards: [sampleGuardianId],
                     mirrorPermissionGranted: true,
                     gender: "Male",
+                    email: "alex.demo@mentorlog.com",
                     defaultHours: 1,
                     defaultMinutes: 45,
                     imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100",
@@ -1058,6 +1062,7 @@
                     associatedGuards: [sampleTeacherId],
                     mirrorPermissionGranted: true,
                     gender: "Female",
+                    email: "guardian.demo@mentorlog.com",
                     imgUrl: "https://images.unsplash.com/photo-1479936343636-73dad5a821d8?auto=format&fit=crop&q=80&w=100",
                     autoDeleteAgreed: false,
                     lastActive: new Date().toISOString()
@@ -1288,11 +1293,9 @@
 
                 if(currentUser) {
                     document.getElementById('prof-username').value = currentUser.name || "";
-                    document.getElementById('prof-img-preview').src = currentUser.imgUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100";
                     document.getElementById('prof-img-url').value = currentUser.imgUrl || "";
                     document.getElementById('prof-contact').value = currentUser.contact || "";
                     document.getElementById('prof-email').value = currentUser.email || "";
-                    document.getElementById('prof-gender').value = currentUser.gender || "Male";
                     document.getElementById('prof-edu').value = currentUser.education || "";
                     document.getElementById('prof-inst').value = currentUser.institution || "";
                     document.getElementById('prof-ssc').value = currentUser.sscGrade || "";
@@ -1329,11 +1332,8 @@
                 return launchToast("Please provide a valid email format.", "error");
             }
 
-            const newGender = document.getElementById('prof-gender').value;
-
             currentUser.name = newUsername;
             currentUser.email = newEmail;
-            currentUser.gender = newGender;
             currentUser.imgUrl = document.getElementById('prof-img-url').value.trim();
             currentUser.contact = document.getElementById('prof-contact').value.trim();
             currentUser.education = document.getElementById('prof-edu').value.trim();
@@ -1421,6 +1421,11 @@
                     return;
                 }
 
+                // Bulletproof Fallback: Ensure demo users exist locally if Firestore is delayed/empty
+                if ((credInput === 'ML-T-SAMPLE' || credInput === 'ML-G-SAMPLE') && !globalDatabase.users[credInput]) {
+                    ensureSampleUsersExist();
+                }
+
                 if (globalDatabase.users[credInput]) {
                     const matchedUser = globalDatabase.users[credInput];
                     if (matchedUser.role !== currentAuthRole) {
@@ -1454,11 +1459,6 @@
                     return launchToast("Please provide a valid email address.", "error");
                 }
 
-                const genderInput = document.getElementById('auth-input-gender').value;
-                if (!genderInput) return launchToast("Identity parsing error: Please select your gender.", "error");
-
-                const authImgUrl = document.getElementById('auth-input-img-url').value;
-
                 const suffix = Math.floor(1000 + Math.random() * 9000);
                 const roleChar = currentAuthRole === 'teacher' ? 'T' : 'G';
                 const generatedId = `ML-${roleChar}-${suffix}`;
@@ -1487,7 +1487,6 @@
                     id: generatedId,
                     name: nameInput,
                     email: emailInput,
-                    gender: genderInput,
                     role: currentAuthRole,
                     connectionCode: generatedId,
                     defaultHours: currentAuthRole === 'teacher' ? 1 : undefined,
@@ -1495,7 +1494,7 @@
                     generatedInvites: [],
                     associatedGuards: linkedGuardianId ? [linkedGuardianId] : [],
                     mirrorPermissionGranted: false,
-                    imgUrl: authImgUrl,
+                    imgUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100",
                     autoDeleteAgreed: agreeInactivity,
                     lastActive: new Date().toISOString()
                 };
@@ -1550,7 +1549,6 @@
                 document.getElementById('auth-input-name').value = '';
                 document.getElementById('auth-input-email').value = '';
                 document.getElementById('auth-input-credential').value = '';
-                document.getElementById('auth-input-gender').value = '';
                 if (document.getElementById('auth-input-inactivity-policy')) {
                     document.getElementById('auth-input-inactivity-policy').checked = false;
                 }
@@ -1660,6 +1658,7 @@
             });
         }
 
+        // Optimized sidebar drawer with responsive mobile controls
         window.toggleSidebarLayout = function() {
             playSoundChime('click');
             globalDatabase.sidebarOpen = !globalDatabase.sidebarOpen;
@@ -2098,7 +2097,7 @@
             launchToast("System environment temporal warp committed.", "info");
         }
 
-        // Peer Linking Implementation
+        // Surgical Direct Pairing Crash Fix (mapped to resolved 'guardian.name' instead of linkedGuardianId reference)
         window.performLinkExecutionBetweenAgents = function(teacherId, guardianId) {
             const teacher = globalDatabase.users[teacherId];
             const guardian = globalDatabase.users[guardianId];
@@ -2188,26 +2187,33 @@
             }
         }
 
-        // Helper function for toggling sidebar layout
+        // Adaptive layout state engine (Surgically optimized for PC slide transitions & mobile drawer modes)
         window.applySidebarState = function() {
             const sidebar = document.getElementById('sidebar');
             const toggleIcon = document.getElementById('toggle-button-icon');
+            const backdrop = document.getElementById('sidebar-overlay');
             
             if (!sidebar || !toggleIcon) return;
 
+            const isMobile = window.innerWidth < 1024;
+
             if (!globalDatabase.sidebarOpen) {
-                sidebar.classList.remove('lg:w-80', 'p-6');
-                sidebar.classList.add('lg:w-0', 'lg:p-0', 'lg:border-r-0');
-                // Mobile Support
-                sidebar.classList.add('h-0', 'p-0', 'border-b-0', 'overflow-hidden');
-                sidebar.classList.remove('w-full', 'p-6');
+                if (isMobile) {
+                    sidebar.classList.add('-translate-x-full');
+                    if (backdrop) backdrop.classList.add('hidden');
+                } else {
+                    sidebar.classList.remove('lg:w-80', 'p-6');
+                    sidebar.classList.add('lg:w-0', 'lg:p-0', 'lg:border-r-0');
+                }
                 toggleIcon.classList.add('rotate-180');
             } else {
-                sidebar.classList.add('lg:w-80', 'p-6');
-                sidebar.classList.remove('lg:w-0', 'lg:p-0', 'lg:border-r-0');
-                // Mobile Support
-                sidebar.classList.remove('h-0', 'p-0', 'border-b-0', 'overflow-hidden');
-                sidebar.classList.add('w-full', 'p-6');
+                if (isMobile) {
+                    sidebar.classList.remove('-translate-x-full');
+                    if (backdrop) backdrop.classList.remove('hidden');
+                } else {
+                    sidebar.classList.add('lg:w-80', 'p-6');
+                    sidebar.classList.remove('lg:w-0', 'lg:p-0', 'lg:border-r-0');
+                }
                 toggleIcon.classList.remove('rotate-180');
             }
         }
@@ -2506,7 +2512,7 @@
                 const activePartners = currentUser.associatedGuards || [];
                 
                 if (activePartners.length === 0) {
-                    partnerCardList.innerHTML = `<div class="text-[11px] text-gray-400 italic">No connected peer profiles linked to this workspace. Use the pairing section below.</div>`;
+                    partnerCardList.innerHTML = `<div class="text-[11px] text-gray-400 italic font-sans">No connected peer profiles linked to this workspace. Use the pairing section below.</div>`;
                 } else {
                     activePartners.forEach(pId => {
                         const peer = globalDatabase.users[pId];
@@ -2517,7 +2523,6 @@
                             pCard.className = "bg-[#fbf9f6] border border-[#eaddcd] rounded-lg p-2.5 space-y-1.5";
                             
                             let optionalFieldsHtml = '';
-                            if (peer.gender) optionalFieldsHtml += `<div class="text-gray-500 font-bold">Gender: <span class="font-sans font-normal text-slateCharcoal">${peer.gender}</span></div>`;
                             if (peer.education) optionalFieldsHtml += `<div class="text-gray-500 font-bold">Edu: <span class="font-sans font-normal text-slateCharcoal">${peer.education}</span></div>`;
                             if (peer.institution) optionalFieldsHtml += `<div class="text-gray-500 font-bold">Inst: <span class="font-sans font-normal text-slateCharcoal">${peer.institution}</span></div>`;
                             if (peer.sscGrade) optionalFieldsHtml += `<div class="text-gray-500 font-bold">SSC: <span class="font-sans font-normal text-slateCharcoal">${peer.sscGrade}</span></div>`;
@@ -2780,19 +2785,19 @@
                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
                                 </div>
                                 <div class="flex-1">
-                                    <h3 class="text-base font-bold text-slateCharcoal">${reasonTitle}</h3>
-                                    <p class="text-xs text-gray-600 mt-1">${reasonDesc}</p>
-                                    <div class="mt-4 pt-4 border-t border-terracotta/10 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                                    <h3 class="text-base font-bold text-slateCharcoal font-sans">${reasonTitle}</h3>
+                                    <p class="text-xs text-gray-600 mt-1 font-sans">${reasonDesc}</p>
+                                    <div class="mt-4 pt-4 border-t border-terracotta/10 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 font-sans">
                                         <div>
                                             <span class="block text-[10px] uppercase font-bold tracking-wider text-gray-400 font-sans">Yield Aggregation</span>
-                                            <span class="text-sm font-semibold text-terracotta">${student.classesLogged} Units (${hoursCalculated} Hours)</span>
+                                            <span class="text-sm font-semibold text-terracotta font-sans">${student.classesLogged} Units (${hoursCalculated} Hours)</span>
                                         </div>
                                         ${globalDatabase.currentView === 'teacher' ? `
                                             <button onclick="triggerPaymentReset(false)" class="bg-terracotta hover:bg-terracottaHover text-white text-xs font-semibold px-4 py-2.5 rounded-xl shadow-sm transition-all whitespace-nowrap font-sans">
                                                 Execute Rotation & Force Clear
                                             </button>
                                         ` : `
-                                            <span class="bg-white border border-terracotta/20 text-terracotta text-xs font-medium px-4 py-2.5 rounded-xl text-center">
+                                            <span class="bg-white border border-terracotta/20 text-terracotta text-xs font-medium px-4 py-2.5 rounded-xl text-center font-sans">
                                                 Awaiting Mentor Reconciliation
                                             </span>
                                         `}
@@ -2833,7 +2838,7 @@
                     const logDateStr = rawDateObj.toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
                     const logTimeStr = rawDateObj.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
                     
-                    let badgeColor = "bg-gray-100 text-gray-600 font-sans";
+                    let badgeColor = "bg-gray-100 text-gray-600";
                     if (log.badge === 'online') badgeColor = "bg-blue-50 text-blue-600 border border-blue-100 font-sans";
                     if (log.badge === 'offline') badgeColor = "bg-emerald-50 text-sage border border-emerald-100 font-sans";
                     if (log.badge === 'Absent') badgeColor = "bg-red-50 text-softRed border border-red-100 font-sans";
@@ -2847,16 +2852,16 @@
                     if (log.badge === 'System') badgeColor = "bg-slate-700 text-white font-bold font-sans";
 
                     const item = document.createElement('div');
-                    item.className = "p-3 bg-[#fbf9f6] rounded-xl border border-[#f0ece6] space-y-1 relative font-sans";
+                    item.className = "p-3 bg-[#fbf9f6] rounded-xl border border-[#f0ece6] space-y-1 relative font-sans animate-[fadeIn_0.3s_ease-out]";
                     item.innerHTML = `
-                        <div class="flex justify-between items-start">
+                        <div class="flex justify-between items-start font-sans">
                             <span class="font-semibold text-slateCharcoal text-xs">${log.event}</span>
                             <span class="text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded uppercase ${badgeColor}">${log.badge || 'info'}</span>
                         </div>
-                        <p class="text-gray-500 text-[11px] leading-relaxed">${log.details}</p>
+                        <p class="text-gray-500 text-[11px] leading-relaxed font-sans">${log.details}</p>
                         <div class="flex items-center justify-between border-t border-gray-100 pt-1.5 mt-1 font-sans">
-                            <span class="text-[9px] text-gray-400 font-medium">${logDateStr} @ ${logTimeStr}</span>
-                            ${log.classIndex ? `<span class="bg-[#f0ece6] text-slateCharcoal text-[10px] px-2 py-0.5 rounded font-bold">Class Unit #${log.classIndex} of 12</span>` : ''}
+                            <span class="text-[9px] text-gray-400 font-medium font-sans">${logDateStr} @ ${logTimeStr}</span>
+                            ${log.classIndex ? `<span class="bg-[#f0ece6] text-slateCharcoal text-[10px] px-2 py-0.5 rounded font-bold font-sans">Class Unit #${log.classIndex} of 12</span>` : ''}
                         </div>
                     `;
                     timelineContainer.appendChild(item);
@@ -2973,45 +2978,6 @@
             });
         });
 
-        // Custom Profile Picture upload selection listeners
-        window.handleAuthFileSelect = function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('auth-img-preview').src = e.target.result;
-                    document.getElementById('auth-input-img-url').value = e.target.result;
-                    launchToast("Device photo configured successfully.", "success");
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        window.handleProfileFileSelect = function(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('prof-img-preview').src = e.target.result;
-                    document.getElementById('prof-img-url').value = e.target.result;
-                    launchToast("Device photo configured successfully.", "success");
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-
-        // Bulletproof Demo Trigger Function
-        window.triggerDemoAccess = function(role) {
-            playSoundChime('click');
-            const input = document.getElementById('auth-input-credential');
-            if (input) {
-                input.value = role === 'teacher' ? 'ML-T-SAMPLE' : 'ML-G-SAMPLE';
-            }
-            window.setAuthRole(role);
-            window.setAuthMode('login');
-            window.processAuthSubmission();
-        };
-
         // Initialize App Context
         window.onload = function () {
             initAuth();
@@ -3120,6 +3086,18 @@
                 stdPanel.classList.add('hidden');
             }
         }
+
+        // Bulletproof Demo Trigger Function
+        window.triggerDemoAccess = function(role) {
+            playSoundChime('click');
+            const input = document.getElementById('auth-input-credential');
+            if (input) {
+                input.value = role === 'teacher' ? 'ML-T-SAMPLE' : 'ML-G-SAMPLE';
+            }
+            window.setAuthRole(role);
+            window.setAuthMode('login');
+            window.processAuthSubmission();
+        };
     </script>
 </body>
 </html>
